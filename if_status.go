@@ -1,22 +1,14 @@
 package main
 
 import (
+	"net"
+
 	"github.com/vishvananda/netlink"
-	"gopkg.in/xenolog/go-tiny-logger.v1"
+	// "reflect"
 )
 
-type IpAddr4 struct {
-	IpAddr string
-	Mask   string
-}
-
-// todo(sv): implement IPv6 support
-// type IpAddr6 struct {
-// 	IpAddr string
-// 	Mask   string
-// }
-
 type L2Status struct {
+	MTU *int
 }
 
 type L3Status struct {
@@ -25,15 +17,123 @@ type L3Status struct {
 }
 
 // Np -- is a acronym for Network Primitive
-type NpStatus struct {
-	Name   sting
-	IfNum  int
-	Online bool
-	L2     L2Status
-	L3     L3Status
+type NpLinkStatus struct {
+	Name     *string
+	IfIndex  *int
+	attrs    *netlink.LinkAttrs
+	linkType string
+	Online   bool
+	L2       L2Status
+	L3       L3Status
 }
 
-func (s *NpStatus) Load(r io.Reader) (err error) {
+// Fill LinkStatus data structure by LinkAttrs
+func (s *NpLinkStatus) FillByNetlinkLink(link netlink.Link) {
+	s.attrs = link.Attrs()
+	s.linkType = link.Type()
+	s.Name = &s.attrs.Name
+	s.IfIndex = &s.attrs.Index
+	if s.attrs.Flags&net.FlagUp != 0 {
+		s.Online = true
+	}
+	s.fillL2statusByNetlinkLink()
+}
 
+func (s *NpLinkStatus) fillL2statusByNetlinkLink() {
+	s.L2.MTU = &s.attrs.MTU
+}
+
+func (s *NpLinkStatus) FillByNetlinkAddrList(addrs []netlink.Addr) {
+	s.L3.IPv4 = addrs
+}
+
+// Next methods implements netlink.Link interface
+func (s *NpLinkStatus) Attrs() *netlink.LinkAttrs {
+	return s.attrs
+}
+func (s *NpLinkStatus) Type() string {
+	return s.linkType
+}
+
+//------------------------------------------------------------------------------
+
+type DiffNpsStatuses struct {
+	New       []string
+	Waste     []string
+	Different []string
+}
+
+func (s *DiffNpsStatuses) IsEqual() (rv bool) {
+	if len(s.New) == 0 && len(s.Waste) == 0 && len(s.Different) == 0 {
+		rv = true
+	}
 	return
+}
+
+//------------------------------------------------------------------------------
+
+type NpsStatus struct {
+	Link   map[string]*NpLinkStatus
+	handle *netlink.Handle
+}
+
+// This method allow to compare NpsStatus with another
+// NpsStatus (runtime and wanted, for example)
+// and return report about diferences
+func (s *NpsStatus) Compare(n *NpsStatus) *DiffNpsStatuses {
+	rv := new(DiffNpsStatuses)
+
+	return rv
+}
+
+// Setup netlink handler if need.
+// set args[0] to true for force re-init handler
+func (s *NpsStatus) setHandle(args ...bool) (err error) {
+	need := false
+	if len(args) > 0 && args[0] == true {
+		need = true
+	} else {
+		if s.handle == nil {
+			need = true
+		}
+	}
+
+	if need {
+		if s.handle, err = netlink.NewHandle(); err != nil {
+			Log.Error("%v", err)
+			return
+		}
+	}
+
+	return nil
+}
+
+func (s *NpsStatus) ObserveRuntime() (err error) {
+	var linkList []netlink.Link
+
+	s.setHandle()
+
+	if linkList, err = s.handle.LinkList(); err != nil {
+		Log.Error("%v", err)
+		return
+	}
+
+	//links := reflect.ValueOf(linkList).MapKeys()
+	for _, link := range linkList {
+		linkName := link.Attrs().Name
+		s.Link[linkName] = new(NpLinkStatus)
+		s.Link[linkName].FillByNetlinkLink(link)
+		if ipaddrInfo, err := s.handle.AddrList(link, netlink.FAMILY_V4); err == nil {
+			s.Link[linkName].FillByNetlinkAddrList(ipaddrInfo)
+		} else {
+			Log.Error("Error while fetch L3 info for '%s' %v", linkName, err)
+		}
+	}
+	return nil
+}
+
+func NewNpsStatus() *NpsStatus {
+	rv := new(NpsStatus)
+	rv.Link = make(map[string]*NpLinkStatus)
+	return rv
 }

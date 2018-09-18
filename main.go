@@ -5,9 +5,10 @@ import (
 	// "io/ioutil"
 	// "gopkg.in/gin-gonic/gin.v1"
 	// "gopkg.in/yaml.v2"
-	cli "github.com/urfave/cli"
-	"github.com/xenolog/go-tiny-logger"
 	"os"
+
+	cli "github.com/urfave/cli"
+	logger "github.com/xenolog/go-tiny-logger"
 )
 
 const (
@@ -21,8 +22,8 @@ var (
 )
 
 func init() {
-	// Setup logger
-	Log = logger.New()
+	// // Setup logger
+	// Log := logger.New()
 
 	// Configure CLI flags and commands
 	App = cli.NewApp()
@@ -49,6 +50,10 @@ func init() {
 			Name:   "list-np",
 			Usage:  "add a new template",
 			Action: UtilityListNetworkPrimitives,
+		}, {
+			Name:   "list-np-old",
+			Usage:  "add a new template",
+			Action: UtilityListNetworkPrimitivesOld,
 		}},
 	}}
 	App.Before = func(c *cli.Context) error {
@@ -64,6 +69,11 @@ func init() {
 		Log.Printf("Wrong command '%s'", cmd)
 		os.Exit(1)
 	}
+}
+
+func init() {
+	// Setup logger
+	Log = logger.New()
 }
 
 func main() {
