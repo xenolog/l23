@@ -20,32 +20,46 @@ func RuntimeNpStatuses() *NpsStatus {
 		Name:   &linkName,
 		Online: true,
 		L3: L3Status{
-			IPv4: make([]netlink.Addr, 1),
+			IPv4: []netlink.Addr{
+				netlink.Addr{
+					IPNet: &net.IPNet{
+						IP:   net.ParseIP("127.0.0.1"),
+						Mask: net.CIDRMask(8, 32),
+					},
+				},
+			},
 		},
 	}
-	rv.Link[linkName].L3.IPv4[0].IPNet = &net.IPNet{
-		IP:   net.ParseIP("127.0.0.1"),
-		Mask: net.CIDRMask(8, 32),
-	}
-
-	// append(rv.Link[linkName].L3.IPv4, ipnet_lo0)
 
 	linkName = "eth1"
 	rv.Link[linkName] = &NpLinkStatus{
 		Name:   &linkName,
 		Online: true,
 		L3: L3Status{
-			IPv4: make([]netlink.Addr, 2),
+			IPv4: []netlink.Addr{
+				netlink.Addr{
+					IPNet: &net.IPNet{
+						IP:   net.ParseIP("10.20.30.40"),
+						Mask: net.CIDRMask(24, 32),
+					},
+				},
+				netlink.Addr{
+					IPNet: &net.IPNet{
+						IP:   net.ParseIP("20.30.40.50"),
+						Mask: net.CIDRMask(25, 32),
+					},
+				},
+			},
 		},
 	}
-	rv.Link[linkName].L3.IPv4[0].IPNet = &net.IPNet{
-		IP:   net.ParseIP("10.20.30.40"),
-		Mask: net.CIDRMask(24, 32),
-	}
-	rv.Link[linkName].L3.IPv4[1].IPNet = &net.IPNet{
-		IP:   net.ParseIP("20.30.40.50"),
-		Mask: net.CIDRMask(25, 32),
-	}
+	// rv.Link[linkName].L3.IPv4[0].IPNet = &net.IPNet{
+	// 	IP:   net.ParseIP("10.20.30.40"),
+	// 	Mask: net.CIDRMask(24, 32),
+	// }
+	// rv.Link[linkName].L3.IPv4[1].IPNet = &net.IPNet{
+	// 	IP:   net.ParseIP("20.30.40.50"),
+	// 	Mask: net.CIDRMask(25, 32),
+	// }
 
 	return rv
 }
