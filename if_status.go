@@ -2,9 +2,10 @@ package main
 
 import (
 	"net"
+	"reflect"
 
 	"github.com/vishvananda/netlink"
-	// "reflect"
+	yaml "gopkg.in/yaml.v2"
 )
 
 type L2Status struct {
@@ -12,7 +13,7 @@ type L2Status struct {
 }
 
 type L3Status struct {
-	IPv4 []netlink.Addr
+	IPv4 []string // in the CIDR notation
 	// IPv6 []IpAddr6
 }
 
@@ -43,8 +44,11 @@ func (s *NpLinkStatus) fillL2statusByNetlinkLink() {
 	s.L2.MTU = &s.attrs.MTU
 }
 
-func (s *NpLinkStatus) FillByNetlinkAddrList(addrs []netlink.Addr) {
-	s.L3.IPv4 = addrs
+func (s *NpLinkStatus) FillByNetlinkAddrList(addrs *[]netlink.Addr) {
+	s.L3.IPv4 = make([]string, len(*addrs))
+	for _, addr := range *addrs {
+		s.L3.IPv4 = append(s.L3.IPv4, addr.IPNet.String())
+	}
 }
 
 // Next methods implements netlink.Link interface
@@ -55,6 +59,11 @@ func (s *NpLinkStatus) Type() string {
 	return s.linkType
 }
 
+func (s *NpLinkStatus) String() string {
+	rv, _ := yaml.Marshal(s)
+	return string(rv)
+}
+
 //------------------------------------------------------------------------------
 
 type DiffNpsStatuses struct {
@@ -63,11 +72,12 @@ type DiffNpsStatuses struct {
 	Different []string
 }
 
-func (s *DiffNpsStatuses) IsEqual() (rv bool) {
-	if len(s.New) == 0 && len(s.Waste) == 0 && len(s.Different) == 0 {
-		rv = true
-	}
-	return
+func (s *DiffNpsStatuses) IsEqual() bool {
+	return len(s.New) == 0 && len(s.Waste) == 0 && len(s.Different) == 0
+}
+func (s *DiffNpsStatuses) String() string {
+	rv, _ := yaml.Marshal(s)
+	return string(rv)
 }
 
 //------------------------------------------------------------------------------
@@ -82,6 +92,24 @@ type NpsStatus struct {
 // and return report about diferences
 func (s *NpsStatus) Compare(n *NpsStatus) *DiffNpsStatuses {
 	rv := new(DiffNpsStatuses)
+
+	// check for aded Np
+	for key, _ := range n.Link {
+		if _, ok := s.Link[key]; !ok {
+			rv.New = append(rv.New, key)
+		}
+	}
+
+	// check for different and removed Np
+	for key, np := range s.Link {
+		if _, ok := n.Link[key]; !ok {
+			rv.Waste = append(rv.Waste, key)
+			continue
+		}
+		if !reflect.DeepEqual(np, n.Link[key]) {
+			rv.Different = append(rv.Different, key)
+		}
+	}
 
 	return rv
 }
@@ -124,12 +152,17 @@ func (s *NpsStatus) ObserveRuntime() (err error) {
 		s.Link[linkName] = new(NpLinkStatus)
 		s.Link[linkName].FillByNetlinkLink(link)
 		if ipaddrInfo, err := s.handle.AddrList(link, netlink.FAMILY_V4); err == nil {
-			s.Link[linkName].FillByNetlinkAddrList(ipaddrInfo)
+			s.Link[linkName].FillByNetlinkAddrList(&ipaddrInfo)
 		} else {
 			Log.Error("Error while fetch L3 info for '%s' %v", linkName, err)
 		}
 	}
 	return nil
+}
+
+func (s *NpsStatus) String() string {
+	rv, _ := yaml.Marshal(s)
+	return string(rv)
 }
 
 func NewNpsStatus() *NpsStatus {

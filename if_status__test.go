@@ -1,11 +1,7 @@
 package main
 
 import (
-	// "gopkg.in/yaml.v2"
-	// "strings"
-	"github.com/vishvananda/netlink"
-
-	"net"
+	"reflect"
 	"testing"
 )
 
@@ -20,14 +16,7 @@ func RuntimeNpStatuses() *NpsStatus {
 		Name:   &linkName,
 		Online: true,
 		L3: L3Status{
-			IPv4: []netlink.Addr{
-				netlink.Addr{
-					IPNet: &net.IPNet{
-						IP:   net.ParseIP("127.0.0.1"),
-						Mask: net.CIDRMask(8, 32),
-					},
-				},
-			},
+			IPv4: []string{"127.0.0.1/8"},
 		},
 	}
 
@@ -36,41 +25,80 @@ func RuntimeNpStatuses() *NpsStatus {
 		Name:   &linkName,
 		Online: true,
 		L3: L3Status{
-			IPv4: []netlink.Addr{
-				netlink.Addr{
-					IPNet: &net.IPNet{
-						IP:   net.ParseIP("10.20.30.40"),
-						Mask: net.CIDRMask(24, 32),
-					},
-				},
-				netlink.Addr{
-					IPNet: &net.IPNet{
-						IP:   net.ParseIP("20.30.40.50"),
-						Mask: net.CIDRMask(25, 32),
-					},
-				},
-			},
+			IPv4: []string{"10.20.30.40/24", "20.30.40.50/25"},
 		},
 	}
-	// rv.Link[linkName].L3.IPv4[0].IPNet = &net.IPNet{
-	// 	IP:   net.ParseIP("10.20.30.40"),
-	// 	Mask: net.CIDRMask(24, 32),
-	// }
-	// rv.Link[linkName].L3.IPv4[1].IPNet = &net.IPNet{
-	// 	IP:   net.ParseIP("20.30.40.50"),
-	// 	Mask: net.CIDRMask(25, 32),
-	// }
-
 	return rv
 }
 
-func TestEqualNpStatuses(t *testing.T) {
-	t.Logf("Incoming NPS: %v", RuntimeNpStatuses())
-	// ns := new(NetworkScheme)
-	// ns_yaml := strings.NewReader(NetworkScheme_1())
-	// if err := ns.Load(ns_yaml); err != nil {
-	// 	t.FailNow()
-	// }
-	// outyaml, _ := yaml.Marshal(ns)
-	// t.Logf("Effective NetworkScheme: \n%s", outyaml)
+func TestIfStatus__EqualNpStatuses(t *testing.T) {
+	runtimeNps := RuntimeNpStatuses()
+	wantedNps := RuntimeNpStatuses()
+	diff := runtimeNps.Compare(wantedNps)
+
+	// t.Logf("Runtime NPS: %s", runtimeNps)
+	// t.Logf("Wanted NPS: %s", wantedNps)
+
+	if !diff.IsEqual() {
+		t.Fail()
+	}
+}
+
+func TestIfStatus__ReducedIface(t *testing.T) {
+	linkName := "eth1"
+	runtimeNps := RuntimeNpStatuses()
+	wantedNps := RuntimeNpStatuses()
+	delete(wantedNps.Link, linkName)
+
+	diff := runtimeNps.Compare(wantedNps)
+
+	// t.Logf("Runtime NPS:\n%s", runtimeNps)
+	// t.Logf("Wanted NPS:\n%s", wantedNps)
+	// t.Logf("Diff:\n%s", diff)
+
+	if len(diff.New) != 0 || len(diff.Different) != 0 || !reflect.DeepEqual(diff.Waste, []string{linkName}) {
+		t.Fail()
+	}
+
+}
+
+func TestIfStatus__AddedIface(t *testing.T) {
+	runtimeNps := RuntimeNpStatuses()
+	wantedNps := RuntimeNpStatuses()
+	linkName := "eth2"
+	wantedNps.Link[linkName] = &NpLinkStatus{
+		Name:   &linkName,
+		Online: true,
+		L3: L3Status{
+			IPv4: []string{"192.168.0.1/24"},
+		},
+	}
+
+	diff := runtimeNps.Compare(wantedNps)
+
+	// t.Logf("Runtime NPS:\n%s", runtimeNps)
+	// t.Logf("Wanted NPS:\n%s", wantedNps)
+	// t.Logf("Diff:\n%s", diff)
+
+	if len(diff.Waste) != 0 || len(diff.Different) != 0 || !reflect.DeepEqual(diff.New, []string{linkName}) {
+		t.Fail()
+	}
+
+}
+func TestIfStatus__DifferentIface(t *testing.T) {
+	runtimeNps := RuntimeNpStatuses()
+	wantedNps := RuntimeNpStatuses()
+	linkName := "eth1"
+	wantedNps.Link[linkName].L3.IPv4 = []string{"10.20.30.40/24", "20.30.40.55/25"}
+
+	diff := runtimeNps.Compare(wantedNps)
+
+	// t.Logf("Runtime NPS:\n%s", runtimeNps)
+	// t.Logf("Wanted NPS:\n%s", wantedNps)
+	// t.Logf("Diff:\n%s", diff)
+
+	if len(diff.Waste) != 0 || len(diff.New) != 0 || !reflect.DeepEqual(diff.Different, []string{linkName}) {
+		t.Fail()
+	}
+
 }

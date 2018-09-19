@@ -2,23 +2,21 @@ package main
 
 import (
 	"fmt"
+	"net"
+
 	cli "github.com/urfave/cli"
 	"github.com/vishvananda/netlink"
-	"github.com/xenolog/go-tiny-logger"
-	"net"
 )
 
 func UtilityListNetworkPrimitivesOld(c *cli.Context) error {
 	var (
 		h        *netlink.Handle
 		ll       []netlink.Link
-		Log      *logger.Logger
 		err      error
 		linkName string
 		online   string
 	)
 
-	Log = logger.New()
 	if h, err = netlink.NewHandle(); err != nil {
 		Log.Fail("%v", err)
 	}
@@ -49,14 +47,11 @@ func UtilityListNetworkPrimitivesOld(c *cli.Context) error {
 
 func UtilityListNetworkPrimitives(c *cli.Context) error {
 	var (
-		Log *logger.Logger
 		// err      error
 		linkName string
 		ipaddrs  string
 		online   string
 	)
-
-	Log = logger.New()
 
 	nps := NewNpsStatus()
 	nps.ObserveRuntime()
@@ -72,7 +67,7 @@ func UtilityListNetworkPrimitives(c *cli.Context) error {
 		ipaddrs = ""
 		sep := ""
 		for _, ip := range link.L3.IPv4 {
-			ipaddrs = fmt.Sprintf("%s%s%s", ipaddrs, sep, ip.IPNet)
+			ipaddrs = fmt.Sprintf("%s%s%s", ipaddrs, sep, ip)
 			sep = ","
 		}
 
