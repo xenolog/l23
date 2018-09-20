@@ -59,9 +59,9 @@ func UtilityListNetworkPrimitives(c *cli.Context) error {
 	for _, link := range nps.Link {
 		linkAttrs := link.Attrs()
 		if linkAttrs.Alias == "" {
-			linkName = *link.Name
+			linkName = link.Name
 		} else {
-			linkName = fmt.Sprintf("%s(%s)", *link.Name, linkAttrs.Alias)
+			linkName = fmt.Sprintf("%s(%s)", link.Name, linkAttrs.Alias)
 		}
 
 		ipaddrs = ""

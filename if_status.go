@@ -9,7 +9,7 @@ import (
 )
 
 type L2Status struct {
-	MTU *int
+	MTU int
 }
 
 type L3Status struct {
@@ -19,8 +19,8 @@ type L3Status struct {
 
 // Np -- is a acronym for Network Primitive
 type NpLinkStatus struct {
-	Name     *string
-	IfIndex  *int
+	Name     string
+	IfIndex  int
 	attrs    *netlink.LinkAttrs
 	linkType string
 	Online   bool
@@ -32,8 +32,8 @@ type NpLinkStatus struct {
 func (s *NpLinkStatus) FillByNetlinkLink(link netlink.Link) {
 	s.attrs = link.Attrs()
 	s.linkType = link.Type()
-	s.Name = &s.attrs.Name
-	s.IfIndex = &s.attrs.Index
+	s.Name = s.attrs.Name
+	s.IfIndex = s.attrs.Index
 	if s.attrs.Flags&net.FlagUp != 0 {
 		s.Online = true
 	}
@@ -41,7 +41,7 @@ func (s *NpLinkStatus) FillByNetlinkLink(link netlink.Link) {
 }
 
 func (s *NpLinkStatus) fillL2statusByNetlinkLink() {
-	s.L2.MTU = &s.attrs.MTU
+	s.L2.MTU = s.attrs.MTU
 }
 
 func (s *NpLinkStatus) FillByNetlinkAddrList(addrs *[]netlink.Addr) {

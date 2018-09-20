@@ -1,9 +1,10 @@
 package main
 
 import (
-	"gopkg.in/yaml.v2"
 	"strings"
 	"testing"
+
+	yaml "gopkg.in/yaml.v2"
 )
 
 func NetworkScheme_1() string {
@@ -29,8 +30,45 @@ endpoints:
 aaa: bbb
 `
 }
+func NpsStatus_1() *NpsStatus {
+	var linkName string
+	rv := &NpsStatus{
+		Link: make(map[string]*NpLinkStatus),
+	}
 
-func TestNetworkSchemeLoad(t *testing.T) {
+	linkName = "eth0"
+	rv.Link[linkName] = &NpLinkStatus{
+		Name:   linkName,
+		Online: true,
+		L2: L2Status{
+			MTU: 2048,
+		},
+		L3: L3Status{
+			IPv4: []string{"10.1.3.11/24", "10.20.30.40/24"},
+		},
+	}
+
+	linkName = "eth1"
+	rv.Link[linkName] = &NpLinkStatus{
+		Name:   linkName,
+		Online: true,
+		L2: L2Status{
+			MTU: 999,
+		},
+		L3: L3Status{
+			IPv4: nil,
+		},
+	}
+
+	linkName = "eth2"
+	rv.Link[linkName] = &NpLinkStatus{
+		Name:   linkName,
+		Online: true,
+	}
+	return rv
+}
+
+func TestNS__Load(t *testing.T) {
 	t.Logf("Incoming NetworkScheme: %v", NetworkScheme_1())
 	ns := new(NetworkScheme)
 	ns_yaml := strings.NewReader(NetworkScheme_1())
@@ -41,7 +79,7 @@ func TestNetworkSchemeLoad(t *testing.T) {
 	t.Logf("Effective NetworkScheme: \n%s", outyaml)
 }
 
-func TestNetworkSchemeValues(t *testing.T) {
+func TestNS__Values(t *testing.T) {
 	ns := new(NetworkScheme)
 	ns_yaml := strings.NewReader(NetworkScheme_1())
 	if err := ns.Load(ns_yaml); err != nil {
@@ -57,6 +95,24 @@ func TestNetworkSchemeValues(t *testing.T) {
 		t.Fail()
 	}
 	if ns.Endpoints["eth1"].IP[0] != "none" {
+		t.Fail()
+	}
+}
+
+func TestNS__GenerateNpsStatus(t *testing.T) {
+	ns := new(NetworkScheme)
+	ns_yaml := strings.NewReader(NetworkScheme_1())
+	if err := ns.Load(ns_yaml); err != nil {
+		t.FailNow()
+	}
+	nps := ns.NpsStatus()
+	wantedNps := NpsStatus_1()
+	diff := nps.Compare(wantedNps)
+	if !diff.IsEqual() {
+		t.Logf("Incoming NetworkScheme: %v", NetworkScheme_1())
+		t.Logf("NS => NPS:\n%s", nps)
+		t.Logf("Wanted NPS:\n%s", wantedNps)
+		t.Logf("Diff:\n%s", diff)
 		t.Fail()
 	}
 }

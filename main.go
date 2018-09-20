@@ -4,7 +4,7 @@ import (
 	// "log"
 	// "io/ioutil"
 	// "gopkg.in/gin-gonic/gin.v1"
-	// "gopkg.in/yaml.v2"
+	// yaml "gopkg.in/yaml.v2"
 	"os"
 
 	cli "github.com/urfave/cli"

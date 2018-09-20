@@ -13,7 +13,7 @@ func RuntimeNpStatuses() *NpsStatus {
 
 	linkName = "lo"
 	rv.Link[linkName] = &NpLinkStatus{
-		Name:   &linkName,
+		Name:   linkName,
 		Online: true,
 		L3: L3Status{
 			IPv4: []string{"127.0.0.1/8"},
@@ -22,7 +22,7 @@ func RuntimeNpStatuses() *NpsStatus {
 
 	linkName = "eth1"
 	rv.Link[linkName] = &NpLinkStatus{
-		Name:   &linkName,
+		Name:   linkName,
 		Online: true,
 		L3: L3Status{
 			IPv4: []string{"10.20.30.40/24", "20.30.40.50/25"},
@@ -67,7 +67,7 @@ func TestIfStatus__AddedIface(t *testing.T) {
 	wantedNps := RuntimeNpStatuses()
 	linkName := "eth2"
 	wantedNps.Link[linkName] = &NpLinkStatus{
-		Name:   &linkName,
+		Name:   linkName,
 		Online: true,
 		L3: L3Status{
 			IPv4: []string{"192.168.0.1/24"},
