@@ -23,6 +23,7 @@ type NpLinkStatus struct {
 	IfIndex  int
 	attrs    *netlink.LinkAttrs
 	linkType string
+	Provider string
 	Online   bool
 	L2       L2Status
 	L3       L3Status
@@ -83,9 +84,10 @@ func (s *DiffNpsStatuses) String() string {
 //------------------------------------------------------------------------------
 
 type NpsStatus struct {
-	Link   map[string]*NpLinkStatus
-	Order  []string
-	handle *netlink.Handle
+	Link            map[string]*NpLinkStatus
+	Order           []string
+	DefaultProvider string
+	handle          *netlink.Handle
 }
 
 // This method allow to compare NpsStatus with another

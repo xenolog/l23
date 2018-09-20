@@ -48,6 +48,7 @@ func NpsStatus_1() *NpsStatus {
 		L3: L3Status{
 			IPv4: []string{"10.1.3.11/24", "10.20.30.40/24"},
 		},
+		Provider: "lnx",
 	}
 
 	linkName = "eth1"
@@ -60,12 +61,14 @@ func NpsStatus_1() *NpsStatus {
 		L3: L3Status{
 			IPv4: nil,
 		},
+		Provider: "lnx",
 	}
 
 	linkName = "eth2"
 	rv.Link[linkName] = &NpLinkStatus{
-		Name:   linkName,
-		Online: true,
+		Name:     linkName,
+		Online:   true,
+		Provider: "lnx",
 	}
 	return rv
 }
@@ -122,6 +125,7 @@ func NpsStatus_2() *NpsStatus {
 		L3: L3Status{
 			IPv4: []string{"10.1.3.11/24", "10.20.30.40/24"},
 		},
+		Provider: "lnx",
 	}
 
 	linkName = "eth1"
@@ -134,12 +138,14 @@ func NpsStatus_2() *NpsStatus {
 		L3: L3Status{
 			IPv4: nil,
 		},
+		Provider: "lnx",
 	}
 
 	linkName = "eth2"
 	rv.Link[linkName] = &NpLinkStatus{
-		Name:   linkName,
-		Online: true,
+		Name:     linkName,
+		Online:   true,
+		Provider: "lnx",
 	}
 	return rv
 }
@@ -186,7 +192,7 @@ func TestNS__GenerateNpsStatus(t *testing.T) {
 		t.FailNow()
 	}
 	nps := ns.NpsStatus()
-	ifOrder := []string{"eth0", "eth5", "eth2"}
+	ifOrder := []string{"eth0", "eth1", "eth2"}
 	if !reflect.DeepEqual(nps.Order, ifOrder) {
 		t.Logf("Wrong ordering: %v, instead %v", nps.Order, ifOrder)
 		t.Fail()
@@ -213,6 +219,78 @@ func TestNS__TransformationsLoad(t *testing.T) {
 	}
 	outyaml, _ := yaml.Marshal(ns)
 	t.Logf("Effective NetworkScheme: \n%s", outyaml)
+}
+
+func TestNS__DefaultProviderEmpty(t *testing.T) {
+	ns := new(NetworkScheme)
+	ns_data := strings.NewReader(`
+version: 1.1
+interfaces:
+    eth0: {}
+`)
+	if err := ns.Load(ns_data); err != nil {
+		t.FailNow()
+	}
+	nps := ns.NpsStatus()
+	if nps.DefaultProvider != "lnx" {
+		t.Logf("Wrong default provider: %v, instead %v", nps.DefaultProvider, "lnx")
+		t.Fail()
+	}
+}
+
+func TestNS__DefaultProviderSetup(t *testing.T) {
+	ns := new(NetworkScheme)
+	ns_data := strings.NewReader(`
+version: 1.1
+provider: ovs
+interfaces:
+    eth0: {}
+`)
+	if err := ns.Load(ns_data); err != nil {
+		t.FailNow()
+	}
+	nps := ns.NpsStatus()
+	if nps.DefaultProvider != "ovs" {
+		t.Logf("Wrong default provider: %v, instead %v", nps.DefaultProvider, "lnx")
+		t.Fail()
+	}
+}
+
+func TestNS__DefaultProviderWithMoreSpecific(t *testing.T) {
+	ns := new(NetworkScheme)
+	ns_data := strings.NewReader(`
+version: 1.1
+provider: ovs
+interfaces:
+    eth0:
+      provider: aaa
+    eth1:
+      provider: aaa
+    eth2: {}
+    eth3: {}
+transformations:
+    - action: port
+      name: eth1
+      provider: bbb
+    - action: port
+      name: eth2
+      provider: ccc
+`)
+	if err := ns.Load(ns_data); err != nil {
+		t.FailNow()
+	}
+	nps := ns.NpsStatus()
+	for _, m := range [...][]string{
+		[]string{"eth0", "aaa"},
+		[]string{"eth1", "bbb"},
+		[]string{"eth2", "ccc"},
+		[]string{"eth3", "ovs"},
+	} {
+		if nps.Link[m[0]].Provider != m[1] {
+			t.Logf("Wrong provider for %s: %v, instead %v", m[0], nps.Link[m[0]].Provider, m[1])
+			t.Fail()
+		}
+	}
 }
 
 func TestNS__TransformationsValues(t *testing.T) {

@@ -67,8 +67,13 @@ func (s *NetworkScheme) Load(r io.Reader) (err error) {
 func (s *NetworkScheme) NpsStatus() *NpsStatus {
 
 	rv := &NpsStatus{
-		Link:  make(map[string]*NpLinkStatus),
-		Order: []string{},
+		Link:            make(map[string]*NpLinkStatus),
+		Order:           []string{},
+		DefaultProvider: "lnx",
+	}
+
+	if s.Provider != "" {
+		rv.DefaultProvider = s.Provider
 	}
 
 	// sort by interface name is required by design !!!
@@ -86,6 +91,11 @@ func (s *NetworkScheme) NpsStatus() *NpsStatus {
 		}
 		//todo(sv): call corresponded interface for resource
 		rv.Link[key].L2.MTU = s.Interfaces[key].Mtu
+		if s.Interfaces[key].Provider != "" {
+			rv.Link[key].Provider = s.Interfaces[key].Provider
+		} else {
+			rv.Link[key].Provider = rv.DefaultProvider
+		}
 	}
 
 	// transformations should be processed here
@@ -100,6 +110,11 @@ func (s *NetworkScheme) NpsStatus() *NpsStatus {
 		}
 		//todo(sv): call corresponded interface for resource
 		rv.Link[tr.Name].L2.MTU = tr.Mtu
+		if tr.Provider != "" {
+			rv.Link[tr.Name].Provider = tr.Provider
+		} else if rv.Link[tr.Name].Provider == "" {
+			rv.Link[tr.Name].Provider = rv.DefaultProvider
+		}
 	}
 
 	// endpoints should be processed last
