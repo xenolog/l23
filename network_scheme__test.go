@@ -267,7 +267,9 @@ interfaces:
     eth1:
       provider: aaa
     eth2: {}
-    eth3: {}
+    eth3:
+      provider: ddd
+    eth4: {}
 transformations:
     - action: port
       name: eth1
@@ -275,16 +277,19 @@ transformations:
     - action: port
       name: eth2
       provider: ccc
+    - action: port
+      name: eth3
 `)
 	if err := ns.Load(ns_data); err != nil {
 		t.FailNow()
 	}
 	nps := ns.NpsStatus()
-	for _, m := range [...][]string{
-		[]string{"eth0", "aaa"},
-		[]string{"eth1", "bbb"},
-		[]string{"eth2", "ccc"},
-		[]string{"eth3", "ovs"},
+	for _, m := range [][]string{
+		{"eth0", "aaa"}, // provider defined into interfaces section
+		{"eth1", "bbb"}, // provider defined into interfaces section and re-defined into transformations
+		{"eth2", "ccc"}, // provider defined into transformation
+		{"eth3", "ddd"}, // provider defined into interfaces section and does not touched into transformations
+		{"eth4", "ovs"}, // Default Provider used
 	} {
 		if nps.Link[m[0]].Provider != m[1] {
 			t.Logf("Wrong provider for %s: %v, instead %v", m[0], nps.Link[m[0]].Provider, m[1])
