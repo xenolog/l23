@@ -4,29 +4,47 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"reflect"
+	"sort"
 
 	yaml "gopkg.in/yaml.v2"
 )
 
-type NsIface struct {
-	Mtu int `yaml:"mtu"`
+type NsPrimitive struct {
+	Action       string   `yaml:"action"`
+	Name         string   `yaml:"name"`
+	Mtu          int      `yaml:"mtu,omitempty"`
+	Bridge       string   `yaml:"bridge,omitempty"`
+	Parent       string   `yaml:"parent,omitempty"`
+	Slaves       []string `yaml:"slaves,omitempty"`
+	Vlan_id      int      `yaml:"vlan_id,omitempty"`
+	Stp          bool     `yaml:"stp,omitempty"`
+	Bpdu_forward bool     `yaml:"bpdu_forward,omitempty"`
+	Type         string   `yaml:"Type,omitempty"`
+	Provider     string   `yaml:"provider"`
+	// Vendor_specific string   `yaml:"vendor_specific,omitempty"`
+	// Ethtool
+	// External_ids
+	// Bond_properties
+	// Interface_properties
 }
 
 type NsEp struct {
-	Gateway       string   `yaml:"gateway"`
-	GatewayMetric int      `yamk:"gateway_metric"`
+	Gateway       string   `yaml:"gateway,omitempty"`
+	GatewayMetric int      `yamk:"gateway_metric,omitempty"`
 	IP            []string `yaml:"IP"`
 }
 
-type NsIfaces map[string]NsIface
+type NsTransformations []NsPrimitive
+type NsIfaces map[string]NsPrimitive
 type NsEps map[string]NsEp
 
 type NetworkScheme struct {
-	Version         string   `yaml:"version"`
-	Interfaces      NsIfaces `yaml:"interfaces"`
-	Transformations string   `yaml:"transformations"`
-	Endpoints       NsEps    `yaml:"endpoints"`
-	Provider        string   `yaml:"provider"`
+	Version         string            `yaml:"version"`
+	Interfaces      NsIfaces          `yaml:"interfaces"`
+	Transformations NsTransformations `yaml:"transformations"`
+	Endpoints       NsEps             `yaml:"endpoints"`
+	Provider        string            `yaml:"provider"`
 }
 
 func (s *NetworkScheme) Load(r io.Reader) (err error) {
@@ -49,9 +67,42 @@ func (s *NetworkScheme) Load(r io.Reader) (err error) {
 func (s *NetworkScheme) NpsStatus() *NpsStatus {
 
 	rv := &NpsStatus{
-		Link: make(map[string]*NpLinkStatus),
+		Link:  make(map[string]*NpLinkStatus),
+		Order: []string{},
 	}
 
+	// sort by interface name is required by design !!!
+	iflist := []string{}
+	for _, key := range reflect.ValueOf(s.Interfaces).MapKeys() {
+		iflist = append(iflist, key.String())
+	}
+	sort.Strings(iflist)
+	for _, key := range iflist {
+		if _, ok := rv.Link[key]; !ok {
+			rv.Link[key] = new(NpLinkStatus)
+			rv.Link[key].Name = key
+			rv.Link[key].Online = true
+			rv.Order = append(rv.Order, key)
+		}
+		//todo(sv): call corresponded interface for resource
+		rv.Link[key].L2.MTU = s.Interfaces[key].Mtu
+	}
+
+	// transformations should be processed here
+	for _, tr := range s.Transformations {
+		if IndexString(rv.Order, tr.Name) < 0 {
+			rv.Order = append(rv.Order, tr.Name)
+		}
+		if _, ok := rv.Link[tr.Name]; !ok {
+			rv.Link[tr.Name] = new(NpLinkStatus)
+			rv.Link[tr.Name].Name = tr.Name
+			rv.Link[tr.Name].Online = true
+		}
+		//todo(sv): call corresponded interface for resource
+		rv.Link[tr.Name].L2.MTU = tr.Mtu
+	}
+
+	// endpoints should be processed last
 	for key, endpoint := range s.Endpoints {
 		if _, ok := rv.Link[key]; !ok {
 			rv.Link[key] = new(NpLinkStatus)
@@ -62,15 +113,6 @@ func (s *NetworkScheme) NpsStatus() *NpsStatus {
 			rv.Link[key].L3.IPv4 = make([]string, len(endpoint.IP))
 			copy(rv.Link[key].L3.IPv4, endpoint.IP)
 		}
-	}
-
-	for key, iface := range s.Interfaces {
-		if _, ok := rv.Link[key]; !ok {
-			rv.Link[key] = new(NpLinkStatus)
-			rv.Link[key].Name = key
-			rv.Link[key].Online = true
-		}
-		rv.Link[key].L2.MTU = iface.Mtu
 	}
 
 	return rv

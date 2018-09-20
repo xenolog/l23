@@ -84,6 +84,7 @@ func (s *DiffNpsStatuses) String() string {
 
 type NpsStatus struct {
 	Link   map[string]*NpLinkStatus
+	Order  []string
 	handle *netlink.Handle
 }
 
