@@ -3,20 +3,19 @@ package ifstatus
 import (
 	"reflect"
 	"testing"
-
-	logger "github.com/xenolog/go-tiny-logger"
+	// logger "github.com/xenolog/go-tiny-logger"
 )
 
 func RuntimeNpStatuses() *NpsStatus {
 	var linkName string
 	rv := &NpsStatus{
 		Link: make(map[string]*NpLinkStatus),
-		Log:  logger.New(),
 	}
 
 	linkName = "lo"
 	rv.Link[linkName] = &NpLinkStatus{
 		Name:   linkName,
+		Action: "port",
 		Online: true,
 		L3: L3Status{
 			IPv4: []string{"127.0.0.1/8"},
@@ -26,6 +25,7 @@ func RuntimeNpStatuses() *NpsStatus {
 	linkName = "eth1"
 	rv.Link[linkName] = &NpLinkStatus{
 		Name:   linkName,
+		Action: "port",
 		Online: true,
 		L3: L3Status{
 			IPv4: []string{"10.20.30.40/24", "20.30.40.50/25"},
@@ -71,6 +71,7 @@ func TestIfStatus__AddedIface(t *testing.T) {
 	linkName := "eth2"
 	wantedNps.Link[linkName] = &NpLinkStatus{
 		Name:   linkName,
+		Action: "port",
 		Online: true,
 		L3: L3Status{
 			IPv4: []string{"192.168.0.1/24"},

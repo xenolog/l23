@@ -9,6 +9,8 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
+var Log *logger.Logger
+
 type L2Status struct {
 	MTU int
 }
@@ -21,6 +23,7 @@ type L3Status struct {
 // Np -- is a acronym for Network Primitive
 type NpLinkStatus struct {
 	Name     string
+	Action   string
 	IfIndex  int
 	attrs    *netlink.LinkAttrs
 	linkType string
@@ -89,7 +92,6 @@ type NpsStatus struct {
 	Order           []string
 	DefaultProvider string
 	handle          *netlink.Handle
-	Log             *logger.Logger
 }
 
 // This method allow to compare NpsStatus with another
@@ -125,7 +127,7 @@ func (s *NpsStatus) setHandle(hh *netlink.Handle) (err error) {
 	if s.handle == nil && hh == nil {
 		// generate new handle if need
 		if s.handle, err = netlink.NewHandle(); err != nil {
-			s.Log.Error("%v", err)
+			Log.Error("%v", err)
 		}
 	} else if hh != nil {
 		// setup handle
@@ -140,7 +142,7 @@ func (s *NpsStatus) ObserveRuntime() (err error) {
 	s.setHandle(nil)
 
 	if linkList, err = s.handle.LinkList(); err != nil {
-		s.Log.Error("%v", err)
+		Log.Error("%v", err)
 		return
 	}
 
@@ -152,7 +154,7 @@ func (s *NpsStatus) ObserveRuntime() (err error) {
 		if ipaddrInfo, err := s.handle.AddrList(link, netlink.FAMILY_V4); err == nil {
 			s.Link[linkName].FillByNetlinkAddrList(&ipaddrInfo)
 		} else {
-			s.Log.Error("Error while fetch L3 info for '%s' %v", linkName, err)
+			Log.Error("Error while fetch L3 info for '%s' %v", linkName, err)
 		}
 	}
 	return nil
@@ -167,4 +169,8 @@ func NewNpsStatus() *NpsStatus {
 	rv := new(NpsStatus)
 	rv.Link = make(map[string]*NpLinkStatus)
 	return rv
+}
+
+func init() {
+	Log = new(logger.Logger)
 }
