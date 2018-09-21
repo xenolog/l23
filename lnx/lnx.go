@@ -90,7 +90,7 @@ func (s *L2Port) Modify(dryrun bool) error {
 	return nil
 }
 
-func NewPort() *L2Port {
+func NewPort() L2Operator {
 	rv := new(L2Port)
 	return rv
 }
@@ -125,7 +125,8 @@ func (s *L2Bridge) Modify(dryrun bool) error {
 	return nil
 }
 
-func NewBridge() *L2Bridge {
+// func NewBridge() *L2Bridge {
+func NewBridge() L2Operator {
 	rv := new(L2Bridge)
 	return rv
 }

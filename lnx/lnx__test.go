@@ -83,7 +83,7 @@ func TestLNX__CallableHash(t *testing.T) {
 			continue
 		}
 		oper := action.(func() L2Operator)()
-		oper.Init(log, lnxRtPlugin.GetHandle(), lnxRtPlugin.GetNp(npName))
+		oper.Init(log, lnxRtPlugin.GetHandle(), wantedNps.Link[npName])
 
 		if IndexString(diff.Waste, npName) >= 0 {
 			// this NP should be removed
