@@ -1,4 +1,4 @@
-package main
+package l23
 
 import (
 	"io"
@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"sort"
 
+	ifstatus "github.com/xenolog/l23/ifstatus"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -64,10 +65,10 @@ func (s *NetworkScheme) Load(r io.Reader) (err error) {
 	return
 }
 
-func (s *NetworkScheme) NpsStatus() *NpsStatus {
+func (s *NetworkScheme) NpsStatus() *ifstatus.NpsStatus {
 
-	rv := &NpsStatus{
-		Link:            make(map[string]*NpLinkStatus),
+	rv := &ifstatus.NpsStatus{
+		Link:            make(map[string]*ifstatus.NpLinkStatus),
 		Order:           []string{},
 		DefaultProvider: "lnx",
 	}
@@ -84,7 +85,7 @@ func (s *NetworkScheme) NpsStatus() *NpsStatus {
 	sort.Strings(iflist)
 	for _, key := range iflist {
 		if _, ok := rv.Link[key]; !ok {
-			rv.Link[key] = new(NpLinkStatus)
+			rv.Link[key] = new(ifstatus.NpLinkStatus)
 			rv.Link[key].Name = key
 			rv.Link[key].Online = true
 			rv.Order = append(rv.Order, key)
@@ -104,7 +105,7 @@ func (s *NetworkScheme) NpsStatus() *NpsStatus {
 			rv.Order = append(rv.Order, tr.Name)
 		}
 		if _, ok := rv.Link[tr.Name]; !ok {
-			rv.Link[tr.Name] = new(NpLinkStatus)
+			rv.Link[tr.Name] = new(ifstatus.NpLinkStatus)
 			rv.Link[tr.Name].Name = tr.Name
 			rv.Link[tr.Name].Online = true
 		}
@@ -120,7 +121,7 @@ func (s *NetworkScheme) NpsStatus() *NpsStatus {
 	// endpoints should be processed last
 	for key, endpoint := range s.Endpoints {
 		if _, ok := rv.Link[key]; !ok {
-			rv.Link[key] = new(NpLinkStatus)
+			rv.Link[key] = new(ifstatus.NpLinkStatus)
 			rv.Link[key].Name = key
 			rv.Link[key].Online = true
 		}

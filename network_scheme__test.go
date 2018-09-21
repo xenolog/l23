@@ -1,10 +1,11 @@
-package main
+package l23
 
 import (
 	"reflect"
 	"strings"
 	"testing"
 
+	ifstatus "github.com/xenolog/l23/ifstatus"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -32,40 +33,40 @@ aaa: bbb
 `
 }
 
-func NpsStatus_1() *NpsStatus {
+func NpsStatus_1() *ifstatus.NpsStatus {
 	var linkName string
-	rv := &NpsStatus{
-		Link: make(map[string]*NpLinkStatus),
+	rv := &ifstatus.NpsStatus{
+		Link: make(map[string]*ifstatus.NpLinkStatus),
 	}
 
 	linkName = "eth0"
-	rv.Link[linkName] = &NpLinkStatus{
+	rv.Link[linkName] = &ifstatus.NpLinkStatus{
 		Name:   linkName,
 		Online: true,
-		L2: L2Status{
+		L2: ifstatus.L2Status{
 			MTU: 2048,
 		},
-		L3: L3Status{
+		L3: ifstatus.L3Status{
 			IPv4: []string{"10.1.3.11/24", "10.20.30.40/24"},
 		},
 		Provider: "lnx",
 	}
 
 	linkName = "eth1"
-	rv.Link[linkName] = &NpLinkStatus{
+	rv.Link[linkName] = &ifstatus.NpLinkStatus{
 		Name:   linkName,
 		Online: true,
-		L2: L2Status{
+		L2: ifstatus.L2Status{
 			MTU: 999,
 		},
-		L3: L3Status{
+		L3: ifstatus.L3Status{
 			IPv4: nil,
 		},
 		Provider: "lnx",
 	}
 
 	linkName = "eth2"
-	rv.Link[linkName] = &NpLinkStatus{
+	rv.Link[linkName] = &ifstatus.NpLinkStatus{
 		Name:     linkName,
 		Online:   true,
 		Provider: "lnx",
@@ -109,40 +110,40 @@ aaa: bbb
 `
 }
 
-func NpsStatus_2() *NpsStatus {
+func NpsStatus_2() *ifstatus.NpsStatus {
 	var linkName string
-	rv := &NpsStatus{
-		Link: make(map[string]*NpLinkStatus),
+	rv := &ifstatus.NpsStatus{
+		Link: make(map[string]*ifstatus.NpLinkStatus),
 	}
 
 	linkName = "eth0"
-	rv.Link[linkName] = &NpLinkStatus{
+	rv.Link[linkName] = &ifstatus.NpLinkStatus{
 		Name:   linkName,
 		Online: true,
-		L2: L2Status{
+		L2: ifstatus.L2Status{
 			MTU: 9000,
 		},
-		L3: L3Status{
+		L3: ifstatus.L3Status{
 			IPv4: []string{"10.1.3.11/24", "10.20.30.40/24"},
 		},
 		Provider: "lnx",
 	}
 
 	linkName = "eth1"
-	rv.Link[linkName] = &NpLinkStatus{
+	rv.Link[linkName] = &ifstatus.NpLinkStatus{
 		Name:   linkName,
 		Online: true,
-		L2: L2Status{
+		L2: ifstatus.L2Status{
 			MTU: 2048,
 		},
-		L3: L3Status{
+		L3: ifstatus.L3Status{
 			IPv4: nil,
 		},
 		Provider: "lnx",
 	}
 
 	linkName = "eth2"
-	rv.Link[linkName] = &NpLinkStatus{
+	rv.Link[linkName] = &ifstatus.NpLinkStatus{
 		Name:     linkName,
 		Online:   true,
 		Provider: "lnx",

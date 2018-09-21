@@ -1,4 +1,4 @@
-package main
+package l23
 
 // Search first occurance of str into string slice
 // return item index or -1 if not found

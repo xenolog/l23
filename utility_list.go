@@ -1,4 +1,4 @@
-package main
+package l23
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 
 	cli "github.com/urfave/cli"
 	"github.com/vishvananda/netlink"
+	ifstatus "github.com/xenolog/l23/ifstatus"
 )
 
 func UtilityListNetworkPrimitivesOld(c *cli.Context) error {
@@ -53,7 +54,7 @@ func UtilityListNetworkPrimitives(c *cli.Context) error {
 		online   string
 	)
 
-	nps := NewNpsStatus()
+	nps := ifstatus.NewNpsStatus()
 	nps.ObserveRuntime()
 
 	for _, link := range nps.Link {
