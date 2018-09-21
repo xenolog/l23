@@ -8,6 +8,8 @@ import (
 	"sort"
 
 	ifstatus "github.com/xenolog/l23/ifstatus"
+
+	. "github.com/xenolog/l23/utils"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -47,6 +49,14 @@ type NetworkScheme struct {
 	Endpoints       NsEps             `yaml:"endpoints"`
 	Provider        string            `yaml:"provider"`
 }
+
+// func (s *NetworkScheme) setLogger(log *logger.Logger) {
+// 	if log != nil {
+// 		s.log = log
+// 	} else if s.log == nil && log == nil {
+// 		s.log = new(logger.Logger)
+// 	}
+// }
 
 func (s *NetworkScheme) Load(r io.Reader) (err error) {
 	var (
@@ -90,6 +100,7 @@ func (s *NetworkScheme) NpsStatus() *ifstatus.NpsStatus {
 			rv.Link[key].Online = true
 			rv.Order = append(rv.Order, key)
 		}
+		rv.Link[key].Action = "port"
 		//todo(sv): call corresponded interface for resource
 		rv.Link[key].L2.MTU = s.Interfaces[key].Mtu
 		if s.Interfaces[key].Provider != "" {
@@ -109,6 +120,9 @@ func (s *NetworkScheme) NpsStatus() *ifstatus.NpsStatus {
 			rv.Link[tr.Name].Name = tr.Name
 			rv.Link[tr.Name].Online = true
 		}
+		if tr.Action != "" {
+			rv.Link[tr.Name].Action = tr.Action
+		}
 		//todo(sv): call corresponded interface for resource
 		rv.Link[tr.Name].L2.MTU = tr.Mtu
 		if tr.Provider != "" {
@@ -120,6 +134,10 @@ func (s *NetworkScheme) NpsStatus() *ifstatus.NpsStatus {
 
 	// endpoints should be processed last
 	for key, endpoint := range s.Endpoints {
+		if IndexString(rv.Order, key) < 0 {
+			log.Printf("Endpoint '%s' is not an interface or network primitive created by transformation", key)
+			continue
+		}
 		if _, ok := rv.Link[key]; !ok {
 			rv.Link[key] = new(ifstatus.NpLinkStatus)
 			rv.Link[key].Name = key

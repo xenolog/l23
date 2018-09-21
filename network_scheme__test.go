@@ -42,6 +42,7 @@ func NpsStatus_1() *ifstatus.NpsStatus {
 	linkName = "eth0"
 	rv.Link[linkName] = &ifstatus.NpLinkStatus{
 		Name:   linkName,
+		Action: "port",
 		Online: true,
 		L2: ifstatus.L2Status{
 			MTU: 2048,
@@ -55,6 +56,7 @@ func NpsStatus_1() *ifstatus.NpsStatus {
 	linkName = "eth1"
 	rv.Link[linkName] = &ifstatus.NpLinkStatus{
 		Name:   linkName,
+		Action: "port",
 		Online: true,
 		L2: ifstatus.L2Status{
 			MTU: 999,
@@ -68,6 +70,7 @@ func NpsStatus_1() *ifstatus.NpsStatus {
 	linkName = "eth2"
 	rv.Link[linkName] = &ifstatus.NpLinkStatus{
 		Name:     linkName,
+		Action:   "port",
 		Online:   true,
 		Provider: "lnx",
 	}
@@ -119,6 +122,7 @@ func NpsStatus_2() *ifstatus.NpsStatus {
 	linkName = "eth0"
 	rv.Link[linkName] = &ifstatus.NpLinkStatus{
 		Name:   linkName,
+		Action: "port",
 		Online: true,
 		L2: ifstatus.L2Status{
 			MTU: 9000,
@@ -132,6 +136,7 @@ func NpsStatus_2() *ifstatus.NpsStatus {
 	linkName = "eth1"
 	rv.Link[linkName] = &ifstatus.NpLinkStatus{
 		Name:   linkName,
+		Action: "port",
 		Online: true,
 		L2: ifstatus.L2Status{
 			MTU: 2048,
@@ -145,6 +150,7 @@ func NpsStatus_2() *ifstatus.NpsStatus {
 	linkName = "eth2"
 	rv.Link[linkName] = &ifstatus.NpLinkStatus{
 		Name:     linkName,
+		Action:   "port",
 		Online:   true,
 		Provider: "lnx",
 	}
