@@ -45,7 +45,7 @@ func NpsStatus_1() *ifstatus.NpsStatus {
 		Action: "port",
 		Online: true,
 		L2: ifstatus.L2Status{
-			MTU: 2048,
+			Mtu: 2048,
 		},
 		L3: ifstatus.L3Status{
 			IPv4: []string{"10.1.3.11/24", "10.20.30.40/24"},
@@ -59,7 +59,7 @@ func NpsStatus_1() *ifstatus.NpsStatus {
 		Action: "port",
 		Online: true,
 		L2: ifstatus.L2Status{
-			MTU: 999,
+			Mtu: 999,
 		},
 		L3: ifstatus.L3Status{
 			IPv4: nil,
@@ -125,7 +125,7 @@ func NpsStatus_2() *ifstatus.NpsStatus {
 		Action: "port",
 		Online: true,
 		L2: ifstatus.L2Status{
-			MTU: 9000,
+			Mtu: 9000,
 		},
 		L3: ifstatus.L3Status{
 			IPv4: []string{"10.1.3.11/24", "10.20.30.40/24"},
@@ -139,7 +139,7 @@ func NpsStatus_2() *ifstatus.NpsStatus {
 		Action: "port",
 		Online: true,
 		L2: ifstatus.L2Status{
-			MTU: 2048,
+			Mtu: 2048,
 		},
 		L3: ifstatus.L3Status{
 			IPv4: nil,
@@ -351,6 +351,70 @@ transformations:
 	if !reflect.DeepEqual(nps.Order, wantedOrder) {
 		t.Logf("Wrong ordering: %v, instead %v", nps.Order, wantedOrder)
 		t.Fail()
+	}
+}
+
+func TestNS__Transformations__L2fields(t *testing.T) {
+	ns := new(NetworkScheme)
+	ns_data := strings.NewReader(`
+version: 1.1
+provider: lnx
+interfaces:
+    eth0: {}
+transformations:
+  - name: xxx
+    action: fuck
+    mtu: 9000
+    bridge: aaa
+    parent: eth0
+    slaves:
+      - x1
+      - x2
+    vlan_id: 101
+    stp: true
+    bpdu_forward: true
+`)
+	if err := ns.Load(ns_data); err != nil {
+		t.FailNow()
+	}
+	nps := ns.NpsStatus()
+	//todo(sv): True order should be
+
+	if nps.Link["xxx"].Name != "xxx" {
+		t.Logf("Field 'Name' not present or invalid")
+		t.Fail()
+	}
+	if nps.Link["xxx"].Action != "fuck" {
+		t.Logf("Field 'Action' not present or invalid")
+		t.Fail()
+	}
+	if nps.Link["xxx"].L2.Mtu != 9000 {
+		t.Logf("Field 'Mtu' not present or invalid")
+		t.Fail()
+	}
+	if nps.Link["xxx"].L2.Bridge != "aaa" {
+		t.Logf("Field 'Bridge' not present or invalid")
+		t.Fail()
+	}
+	if nps.Link["xxx"].L2.Parent != "eth0" {
+		t.Logf("Field 'Parent' not present or invalid")
+		t.Fail()
+	}
+	if !reflect.DeepEqual(nps.Link["xxx"].L2.Slaves, []string{"x1", "x2"}) {
+		t.Logf("Field 'Slaves' not present or invalid")
+		t.Fail()
+	}
+	if !nps.Link["xxx"].L2.Bpdu_forward {
+		t.Logf("Field 'Bpdu_forward' not present or invalid")
+		t.Fail()
+	}
+	if !nps.Link["xxx"].L2.Stp {
+		t.Logf("Field 'Stp' not present or invalid")
+		t.Fail()
+	}
+	if t.Failed() {
+		txt, _ := yaml.Marshal(nps.Link["xxx"])
+		t.Logf(string(txt))
 	}
 }
 

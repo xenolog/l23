@@ -102,7 +102,7 @@ func (s *NetworkScheme) NpsStatus() *ifstatus.NpsStatus {
 		}
 		rv.Link[key].Action = "port"
 		//todo(sv): call corresponded interface for resource
-		rv.Link[key].L2.MTU = s.Interfaces[key].Mtu
+		rv.Link[key].L2.Mtu = s.Interfaces[key].Mtu
 		if s.Interfaces[key].Provider != "" {
 			rv.Link[key].Provider = s.Interfaces[key].Provider
 		} else {
@@ -124,7 +124,13 @@ func (s *NetworkScheme) NpsStatus() *ifstatus.NpsStatus {
 			rv.Link[tr.Name].Action = tr.Action
 		}
 		//todo(sv): call corresponded interface for resource
-		rv.Link[tr.Name].L2.MTU = tr.Mtu
+		rv.Link[tr.Name].L2.Mtu = tr.Mtu
+		rv.Link[tr.Name].L2.Bridge = tr.Bridge
+		rv.Link[tr.Name].L2.Parent = tr.Parent
+		rv.Link[tr.Name].L2.Slaves = tr.Slaves
+		rv.Link[tr.Name].L2.Vlan_id = tr.Vlan_id
+		rv.Link[tr.Name].L2.Stp = tr.Stp
+		rv.Link[tr.Name].L2.Bpdu_forward = tr.Bpdu_forward
 		if tr.Provider != "" {
 			rv.Link[tr.Name].Provider = tr.Provider
 		} else if rv.Link[tr.Name].Provider == "" {

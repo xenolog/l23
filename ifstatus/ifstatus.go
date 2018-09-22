@@ -12,7 +12,14 @@ import (
 var Log *logger.Logger
 
 type L2Status struct {
-	MTU int
+	Mtu          int
+	Bridge       string
+	Parent       string
+	Slaves       []string
+	Vlan_id      int
+	Stp          bool
+	Bpdu_forward bool
+	// Type         string
 }
 
 type L3Status struct {
@@ -46,7 +53,7 @@ func (s *NpLinkStatus) FillByNetlinkLink(link netlink.Link) {
 }
 
 func (s *NpLinkStatus) fillL2statusByNetlinkLink() {
-	s.L2.MTU = s.attrs.MTU
+	s.L2.Mtu = s.attrs.MTU
 }
 
 func (s *NpLinkStatus) FillByNetlinkAddrList(addrs *[]netlink.Addr) {
