@@ -1,4 +1,4 @@
-package l23
+package main
 
 import (
 	"fmt"

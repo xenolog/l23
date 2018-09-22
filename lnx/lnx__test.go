@@ -144,7 +144,7 @@ func RuntimeNpStatuses__1__wanted() *NpsStatus {
 	return rv
 }
 
-func TestLNX__CallableHash(t *testing.T) {
+func TestLNX__1__MainRun(t *testing.T) {
 	log := logger.New()
 	runtimeNps := RuntimeNpStatuses__1__exists()
 	wantedNps := RuntimeNpStatuses__1__wanted()
