@@ -22,6 +22,12 @@ func RuntimeNpStatuses() *NpsStatus {
 		},
 	}
 
+	linkName = "eth0"
+	rv.Link[linkName] = &NpLinkStatus{
+		Name:   linkName,
+		Action: "remove",
+	}
+
 	linkName = "eth1"
 	rv.Link[linkName] = &NpLinkStatus{
 		Name:   linkName,
@@ -38,12 +44,12 @@ func TestIfStatus__EqualNpStatuses(t *testing.T) {
 	runtimeNps := RuntimeNpStatuses()
 	wantedNps := RuntimeNpStatuses()
 	diff := runtimeNps.Compare(wantedNps)
-
-	// t.Logf("Runtime NPS: %s", runtimeNps)
-	// t.Logf("Wanted NPS: %s", wantedNps)
-
 	if !diff.IsEqual() {
 		t.Fail()
+	}
+	if t.Failed() {
+		t.Logf("Runtime NPS: %s", runtimeNps)
+		t.Logf("Wanted NPS: %s", wantedNps)
 	}
 }
 

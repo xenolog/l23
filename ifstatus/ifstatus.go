@@ -116,11 +116,9 @@ func (s *NpsStatus) Compare(n *NpsStatus) *DiffNpsStatuses {
 
 	// check for different and removed Np
 	for key, np := range s.Link {
-		if _, ok := n.Link[key]; !ok {
+		if _, ok := n.Link[key]; !ok { // || n.Link[key].Action == "remove" {
 			rv.Waste = append(rv.Waste, key)
-			continue
-		}
-		if !reflect.DeepEqual(np, n.Link[key]) {
+		} else if !reflect.DeepEqual(np, n.Link[key]) {
 			rv.Different = append(rv.Different, key)
 		}
 	}

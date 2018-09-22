@@ -29,6 +29,7 @@ type RtPlugin interface {
 	Version() string
 	Operators() NpOperators
 	Observe() error // Observe runtime and build NPState
+	NetworkState() *ifstatus.NpsStatus
 	GetNp(string) *ifstatus.NpLinkStatus
 	GetLogger() *logger.Logger
 	GetHandle() *netlink.Handle
@@ -168,6 +169,10 @@ func (s *LnxRtPlugin) Version() string {
 func (s *LnxRtPlugin) Observe() error {
 	s.nps = ifstatus.NewNpsStatus()
 	return s.nps.ObserveRuntime()
+}
+
+func (s *LnxRtPlugin) NetworkState() *ifstatus.NpsStatus {
+	return s.nps
 }
 
 func (s *LnxRtPlugin) GetNp(name string) *ifstatus.NpLinkStatus {

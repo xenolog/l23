@@ -1,0 +1,19 @@
+---
+version: 1.2
+provider: lnx
+interfaces:
+  eth1: {}
+transformations:
+  - name: br1
+    action: bridge
+  - name: eth1
+    action: port
+    bridge: br1
+  - name: tunl0
+    action: remove
+endpoints:
+  br1:
+    IP:
+      - '10.10.10.2/24'
+  eth1:
+    IP: []
