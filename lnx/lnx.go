@@ -12,7 +12,7 @@ const (
 
 // -----------------------------------------------------------------------------
 
-type L2Operator interface {
+type NpOperator interface {
 	Init(*logger.Logger, *netlink.Handle, *ifstatus.NpLinkStatus) error
 	Create(bool) error
 	Remove(bool) error
@@ -22,13 +22,12 @@ type L2Operator interface {
 	//todo(sv): NS2Status() *NpLinkStatus // move wanted status generation from ns
 }
 
-//type L2Operators map[string]interface{}
-type L2Operators map[string]interface{}
+type NpOperators map[string]interface{}
 
 type RtPlugin interface {
 	Init(*logger.Logger, *netlink.Handle) error
 	Version() string
-	Operators() L2Operators
+	Operators() NpOperators
 	Observe() error // Observe runtime and build NPState
 	GetNp(string) *ifstatus.NpLinkStatus
 	GetLogger() *logger.Logger
@@ -43,27 +42,27 @@ type LnxRtPlugin struct {
 
 // -----------------------------------------------------------------------------
 
-type L2Base struct {
+type OpBase struct {
 	log    *logger.Logger
 	handle *netlink.Handle
 	state  *ifstatus.NpLinkStatus
 }
 
-func (s *L2Base) Init(log *logger.Logger, handle *netlink.Handle, st *ifstatus.NpLinkStatus) error {
+func (s *OpBase) Init(log *logger.Logger, handle *netlink.Handle, st *ifstatus.NpLinkStatus) error {
 	s.handle = handle
 	s.log = log
 	s.state = st
 	return nil
 }
 
-func (s *L2Base) Name() string {
+func (s *OpBase) Name() string {
 	return s.state.Name
 }
 
 // -----------------------------------------------------------------------------
 
 type L2Port struct {
-	L2Base
+	OpBase
 }
 
 func (s *L2Port) Create(dryrun bool) error {
@@ -90,7 +89,7 @@ func (s *L2Port) Modify(dryrun bool) error {
 	return nil
 }
 
-func NewPort() L2Operator {
+func NewPort() NpOperator {
 	rv := new(L2Port)
 	return rv
 }
@@ -98,7 +97,7 @@ func NewPort() L2Operator {
 // -----------------------------------------------------------------------------
 
 type L2Bridge struct {
-	L2Base
+	OpBase
 }
 
 func (s *L2Bridge) Create(dryrun bool) error {
@@ -125,11 +124,17 @@ func (s *L2Bridge) Modify(dryrun bool) error {
 	return nil
 }
 
-// func NewBridge() *L2Bridge {
-func NewBridge() L2Operator {
+func NewBridge() NpOperator {
 	rv := new(L2Bridge)
 	return rv
 }
+
+// -----------------------------------------------------------------------------
+
+// func NewIPv4() NpOperator {
+// 	rv := new(NewIPv4)
+// 	return rv
+// }
 
 // -----------------------------------------------------------------------------
 
@@ -148,10 +153,11 @@ func (s *LnxRtPlugin) Init(log *logger.Logger, hh *netlink.Handle) (err error) {
 	return nil
 }
 
-func (s *LnxRtPlugin) Operators() L2Operators {
-	return L2Operators{
+func (s *LnxRtPlugin) Operators() NpOperators {
+	return NpOperators{
 		"port":   NewPort,
 		"bridge": NewBridge,
+		// "endpoint":   NewIPv4,
 	}
 }
 

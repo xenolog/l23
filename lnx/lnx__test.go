@@ -1,6 +1,8 @@
 package lnx
 
 import (
+	"reflect"
+	"sort"
 	"testing"
 
 	logger "github.com/xenolog/go-tiny-logger"
@@ -8,11 +10,29 @@ import (
 	. "github.com/xenolog/l23/utils"
 )
 
-func RuntimeNpStatuses() *NpsStatus {
+func TestLNX__OperatorList(t *testing.T) {
+	lnxRtPlugin := NewLnxRtPlugin()
+	keys := []string{}
+	operators := lnxRtPlugin.Operators()
+	for _, key := range reflect.ValueOf(operators).MapKeys() {
+		keys = append(keys, key.String())
+	}
+	sort.Strings(keys)
+	wantedKeys := []string{"bridge", "port"}
+
+	if !reflect.DeepEqual(keys, wantedKeys) {
+		t.Logf("Operator list from LnxRtPlugin broken, given %v, instead %v", keys, wantedKeys)
+		t.Fail()
+	}
+}
+
+// -----------------------------------------------------------------------------
+
+func RuntimeNpStatuses__1__exists() *NpsStatus {
 	var linkName string
 	rv := &NpsStatus{
 		Link:  make(map[string]*NpLinkStatus),
-		Order: []string{"lo", "eth1", "br4"},
+		Order: []string{},
 	}
 
 	linkName = "lo"
@@ -22,6 +42,67 @@ func RuntimeNpStatuses() *NpsStatus {
 		Online: true,
 		L3: L3Status{
 			IPv4: []string{"127.0.0.1/8"},
+		},
+	}
+
+	linkName = "eth0"
+	rv.Link[linkName] = &NpLinkStatus{
+		Name:   linkName,
+		Action: "port",
+		Online: true,
+		L3: L3Status{
+			IPv4: []string{"10.10.10.222/24"},
+		},
+	}
+
+	linkName = "eth1"
+	rv.Link[linkName] = &NpLinkStatus{
+		Name:   linkName,
+		Action: "port",
+		Online: true,
+		L3: L3Status{
+			IPv4: []string{"10.20.30.40/24"},
+		},
+	}
+
+	linkName = "eth1.222"
+	rv.Link[linkName] = &NpLinkStatus{
+		Name:   linkName,
+		Action: "port",
+		Online: true,
+	}
+
+	for _, key := range reflect.ValueOf(rv.Link).MapKeys() {
+		rv.Order = append(rv.Order, key.String())
+	}
+	sort.Strings(rv.Order)
+	return rv
+}
+
+func RuntimeNpStatuses__1__wanted() *NpsStatus {
+	var linkName string
+	rv := &NpsStatus{
+		Link:  make(map[string]*NpLinkStatus),
+		Order: []string{},
+	}
+
+	linkName = "lo"
+	rv.Link[linkName] = &NpLinkStatus{
+		Name:   linkName,
+		Action: "port",
+		Online: true,
+		L3: L3Status{
+			IPv4: []string{"127.0.0.1/8"},
+		},
+	}
+
+	linkName = "eth0"
+	rv.Link[linkName] = &NpLinkStatus{
+		Name:   linkName,
+		Action: "port",
+		Online: true,
+		L3: L3Status{
+			IPv4: []string{"10.10.10.1/24"},
 		},
 	}
 
@@ -35,73 +116,89 @@ func RuntimeNpStatuses() *NpsStatus {
 		},
 	}
 
+	linkName = "eth1.101"
+	rv.Link[linkName] = &NpLinkStatus{
+		Name:   linkName,
+		Action: "port",
+		Online: true,
+		L2: L2Status{
+			Bridge:  "br4",
+			Parent:  "eth1",
+			Vlan_id: 101,
+		},
+	}
+
 	linkName = "br4"
 	rv.Link[linkName] = &NpLinkStatus{
 		Name:   linkName,
 		Action: "bridge",
 		Online: true,
+		L3: L3Status{
+			IPv4: []string{"10.40.40.1/24"},
+		},
 	}
+	for _, key := range reflect.ValueOf(rv.Link).MapKeys() {
+		rv.Order = append(rv.Order, key.String())
+	}
+	sort.Strings(rv.Order)
 	return rv
 }
 
-// func TestLNX__Callable_hash(t *testing.T) {
-// 	runtimeNps := &NpsStatus{
-// 		Link: make(map[string]*NpLinkStatus),
-// 		Log:  logger.New(),
-// 	}
-// 	// we need create ALL
-// 	wantedNps := RuntimeNpStatuses()
-// 	diff := runtimeNps.Compare(wantedNps)
-
-// 	// t.Logf("Runtime NPS: %s", runtimeNps)
-// 	// t.Logf("Wanted NPS: %s", wantedNps)
-// 	t.Logf("Diff: %s", diff)
-
-// 	if !diff.IsEqual() {
-// 		t.Fail()
-// 	}
-// }
-
 func TestLNX__CallableHash(t *testing.T) {
 	log := logger.New()
-	runtimeNps := &NpsStatus{
-		Link: make(map[string]*NpLinkStatus),
-	}
-	// we need create ALL
-	wantedNps := RuntimeNpStatuses()
+	runtimeNps := RuntimeNpStatuses__1__exists()
+	wantedNps := RuntimeNpStatuses__1__wanted()
 	diff := runtimeNps.Compare(wantedNps)
 
 	lnxRtPlugin := NewLnxRtPlugin()
 	lnxRtPlugin.Init(log, nil)
 	operators := lnxRtPlugin.Operators()
+	t.Logf("Diff: %s", diff)
 
+	// report
+	npCreated := []string{}
+	npRemoved := []string{}
+	npModifyed := []string{}
 	// walk ordr and implement diffs
 	for _, npName := range wantedNps.Order {
 		action, ok := operators[wantedNps.Link[npName].Action]
 		if !ok {
-			log.Error("Unsupported actiom '%s' for '%s', skipped", action, npName)
+			t.Logf("Unsupported actiom '%s' for '%s', skipped", action, npName)
+			t.Fail()
 			continue
 		}
-		oper := action.(func() L2Operator)()
+		oper := action.(func() NpOperator)()
 		oper.Init(log, lnxRtPlugin.GetHandle(), wantedNps.Link[npName])
 
+		t.Logf(npName)
 		if IndexString(diff.Waste, npName) >= 0 {
 			// this NP should be removed
 			oper.Remove(true)
+			npRemoved = append(npRemoved, npName)
 		} else if IndexString(diff.New, npName) >= 0 {
 			// this NP shoujld be created
 			oper.Create(true)
-		} else if IndexString(diff.New, npName) >= 0 {
+			npCreated = append(npCreated, npName)
+		} else if IndexString(diff.Different, npName) >= 0 {
 			oper.Modify(true)
+			npModifyed = append(npModifyed, npName)
 		}
 	}
 
-	// t.Logf("Runtime NPS: %s", runtimeNps)
-	// t.Logf("Wanted NPS: %s", wantedNps)
-	t.Logf("Diff: %s", diff)
-	t.Logf("Diff: %v", operators)
-
-	if !diff.IsEqual() {
+	// evaluate report
+	if !reflect.DeepEqual(npCreated, []string{"br4", "eth1.101"}) {
+		t.Logf("Problen while creating resources: %v", npCreated)
 		t.Fail()
 	}
+	if !reflect.DeepEqual(npModifyed, []string{"eth0", "eth1"}) {
+		t.Logf("Problen while modifying resources: %v", npModifyed)
+		t.Fail()
+	}
+	//todo(sv): there are no Removing, because "wanted" network_scheme has no
+	// description of absent resources. TBD !!!
+	//
+	// if !reflect.DeepEqual(npRemoved, []string{"eth1.222"}) {
+	// 	t.Logf("Problen while removing resources: %v", npRemoved)
+	// 	t.Fail()
+	// }
 }
