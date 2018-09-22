@@ -22,6 +22,34 @@ func RuntimeNpStatuses() *NpsStatus {
 		},
 	}
 
+	linkName = "eth1"
+	rv.Link[linkName] = &NpLinkStatus{
+		Name:   linkName,
+		Action: "port",
+		Online: true,
+		L3: L3Status{
+			IPv4: []string{"10.20.30.40/24", "20.30.40.50/25"},
+		},
+	}
+	return rv
+}
+
+func RuntimeNpStatusesForRemove() *NpsStatus {
+	var linkName string
+	rv := &NpsStatus{
+		Link: make(map[string]*NpLinkStatus),
+	}
+
+	linkName = "lo"
+	rv.Link[linkName] = &NpLinkStatus{
+		Name:   linkName,
+		Action: "port",
+		Online: true,
+		L3: L3Status{
+			IPv4: []string{"127.0.0.1/8"},
+		},
+	}
+
 	linkName = "eth0"
 	rv.Link[linkName] = &NpLinkStatus{
 		Name:   linkName,
@@ -67,6 +95,29 @@ func TestIfStatus__ReducedIface(t *testing.T) {
 
 	if len(diff.New) != 0 || len(diff.Different) != 0 || !reflect.DeepEqual(diff.Waste, []string{linkName}) {
 		t.Fail()
+	}
+
+}
+
+func TestIfStatus__ReducedIface__by_remove_action(t *testing.T) {
+	linkName := "eth0"
+	runtimeNps := RuntimeNpStatusesForRemove()
+	wantedNps := RuntimeNpStatusesForRemove()
+
+	diff := runtimeNps.Compare(wantedNps)
+
+	// t.Logf("Runtime NPS:\n%s", runtimeNps)
+	// t.Logf("Wanted NPS:\n%s", wantedNps)
+	// t.Logf("Diff:\n%s", diff)
+
+	if len(diff.New) != 0 || len(diff.Different) != 0 || !reflect.DeepEqual(diff.Waste, []string{linkName}) {
+		t.Fail()
+	}
+
+	if t.Failed() {
+		t.Logf("DIFF: \n%v", diff)
+		t.Logf("Runtime NPS: %s", runtimeNps)
+		t.Logf("Wanted NPS: %s", wantedNps)
 	}
 
 }

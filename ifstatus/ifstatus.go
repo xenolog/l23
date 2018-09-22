@@ -116,7 +116,11 @@ func (s *NpsStatus) Compare(n *NpsStatus) *DiffNpsStatuses {
 
 	// check for different and removed Np
 	for key, np := range s.Link {
-		if _, ok := n.Link[key]; !ok { // || n.Link[key].Action == "remove" {
+		if _, ok := n.Link[key]; !ok {
+			rv.Waste = append(rv.Waste, key)
+		} else if n.Link[key].Action == "remove" {
+			// "remove" is a pseudo-action for force add any network primitive to removal queue
+			n.Link[key].Action = ""
 			rv.Waste = append(rv.Waste, key)
 		} else if !reflect.DeepEqual(np, n.Link[key]) {
 			rv.Different = append(rv.Different, key)
