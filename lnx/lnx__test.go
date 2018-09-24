@@ -168,7 +168,7 @@ func TestLNX__1__MainRun(t *testing.T) {
 			continue
 		}
 		oper := action.(func() NpOperator)()
-		oper.Init(log, lnxRtPlugin.GetHandle(), wantedNps.Link[npName])
+		oper.Init(wantedNps.Link[npName])
 
 		t.Logf(npName)
 		if IndexString(diff.Waste, npName) >= 0 {

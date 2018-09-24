@@ -144,7 +144,7 @@ func RunNetConfig(c *cli.Context) (err error) {
 			continue
 		}
 		oper := action.(func() lnx.NpOperator)() // should be blugin_base.NpOperator
-		oper.Init(Log, lnxRtPlugin.GetHandle(), wantedNetState.Link[npName])
+		oper.Init(wantedNetState.Link[npName])
 
 		if IndexString(diffNetState.Waste, npName) >= 0 {
 			// this NP should be removed

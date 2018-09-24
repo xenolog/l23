@@ -10,10 +10,12 @@ const (
 	MsgPrefix = "LNX plugin"
 )
 
+var LnxRtPluginEntryPoint *LnxRtPlugin
+
 // -----------------------------------------------------------------------------
 
 type NpOperator interface {
-	Init(*logger.Logger, *netlink.Handle, *ifstatus.NpLinkStatus) error
+	Init(*ifstatus.NpLinkStatus) error
 	Create(bool) error
 	Remove(bool) error
 	Modify(bool) error
@@ -44,20 +46,26 @@ type LnxRtPlugin struct {
 // -----------------------------------------------------------------------------
 
 type OpBase struct {
-	log    *logger.Logger
-	handle *netlink.Handle
-	state  *ifstatus.NpLinkStatus
+	plugin      *LnxRtPlugin
+	log         *logger.Logger
+	handle      *netlink.Handle
+	wantedState *ifstatus.NpLinkStatus
+	rtState     *ifstatus.NpLinkStatus
 }
 
-func (s *OpBase) Init(log *logger.Logger, handle *netlink.Handle, st *ifstatus.NpLinkStatus) error {
-	s.handle = handle
-	s.log = log
-	s.state = st
+func (s *OpBase) Init(wantedState *ifstatus.NpLinkStatus) error {
+	s.wantedState = wantedState
+	s.rtState = nil
 	return nil
+}
+func (s *OpBase) setupGlobals() {
+	s.plugin = LnxRtPluginEntryPoint
+	s.handle = s.plugin.handle
+	s.log = s.plugin.log
 }
 
 func (s *OpBase) Name() string {
-	return s.state.Name
+	return s.wantedState.Name
 }
 
 // -----------------------------------------------------------------------------
@@ -92,6 +100,7 @@ func (s *L2Port) Modify(dryrun bool) error {
 
 func NewPort() NpOperator {
 	rv := new(L2Port)
+	rv.setupGlobals()
 	return rv
 }
 
@@ -127,6 +136,7 @@ func (s *L2Bridge) Modify(dryrun bool) error {
 
 func NewBridge() NpOperator {
 	rv := new(L2Bridge)
+	rv.setupGlobals()
 	return rv
 }
 
@@ -151,6 +161,7 @@ func (s *LnxRtPlugin) Init(log *logger.Logger, hh *netlink.Handle) (err error) {
 		s.handle = hh
 	}
 	s.log = log
+	LnxRtPluginEntryPoint = s
 	return nil
 }
 
