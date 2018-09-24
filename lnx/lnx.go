@@ -74,11 +74,12 @@ type L2Port struct {
 	OpBase
 }
 
-func (s *L2Port) Create(dryrun bool) error {
+func (s *L2Port) Create(dryrun bool) (err error) {
 	if dryrun {
 		s.log.Info("%s dryrun: Port '%s' created.", MsgPrefix, s.Name())
 		return nil
 	}
+
 	return nil
 }
 
@@ -115,17 +116,19 @@ func (s *L2Bridge) Create(dryrun bool) (err error) {
 		s.log.Info("%s dryrun: Bridge '%s' created.", MsgPrefix, s.Name())
 		return nil
 	}
+
 	s.log.Info("%s Creating bridge '%s'", MsgPrefix, s.Name())
 	br := netlink.Bridge{}
 	br.Name = s.Name()
 	if err = s.handle.LinkAdd(&br); err != nil {
 		s.log.Error("%s: error while bridge creating: %v", MsgPrefix, err)
+		return err
 	} else {
 		s.log.Info("%s: bridge created.", MsgPrefix)
 	}
-	if err = s.handle.LinkSetUp(&br); err != nil {
-		s.log.Error("%s: error while bridge setting to UP state: %v", MsgPrefix, err)
-	}
+
+	err = s.Modify(dryrun)
+
 	return err
 }
 
@@ -148,13 +151,35 @@ func (s *L2Bridge) Remove(dryrun bool) (err error) {
 	return err
 }
 
-func (s *L2Bridge) Modify(dryrun bool) error {
+func (s *L2Bridge) Modify(dryrun bool) (err error) {
 	if dryrun {
 		s.log.Info("%s dryrun: Bridge '%s' modifyed.", MsgPrefix, s.Name())
 		return nil
 	}
-	// br, _ := netlink.LinkByName(s.Name())
-	return nil
+
+	s.log.Info("%s: Modifying bridge '%s'", MsgPrefix, s.Name())
+	link, _ := netlink.LinkByName(s.Name())
+	attrs := link.Attrs()
+
+	if err = s.handle.LinkSetDown(link); err != nil {
+		s.log.Error("%s: error while bridge set to DOWN state: %v", MsgPrefix, err)
+	}
+
+	if s.wantedState.L2.Mtu > 0 && s.wantedState.L2.Mtu != attrs.MTU {
+		s.log.Debug("%s: setting MTU to: %v", MsgPrefix, s.wantedState.L2.Mtu)
+		if err = s.handle.LinkSetMTU(link, s.wantedState.L2.Mtu); err != nil {
+			s.log.Error("%s: error while bridge set MTU: %v", MsgPrefix, err)
+		}
+	}
+
+	if s.wantedState.Online {
+		s.log.Debug("%s: setting to UP state", MsgPrefix)
+		if err = s.handle.LinkSetUp(link); err != nil {
+			s.log.Error("%s: error while bridge set to UP state: %v", MsgPrefix, err)
+		}
+	}
+
+	return err
 }
 
 func NewBridge() NpOperator {

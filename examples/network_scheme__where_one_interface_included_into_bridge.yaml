@@ -5,6 +5,7 @@ provider: lnx
 #   eth1: {}
 transformations:
   - name: br1
+    mtu:  1496
     action: bridge
   - name: eth1
     action: port
