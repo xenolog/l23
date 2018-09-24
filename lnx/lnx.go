@@ -110,20 +110,42 @@ type L2Bridge struct {
 	OpBase
 }
 
-func (s *L2Bridge) Create(dryrun bool) error {
+func (s *L2Bridge) Create(dryrun bool) (err error) {
 	if dryrun {
 		s.log.Info("%s dryrun: Bridge '%s' created.", MsgPrefix, s.Name())
 		return nil
 	}
-	return nil
+	s.log.Info("%s Creating bridge '%s'", MsgPrefix, s.Name())
+	br := netlink.Bridge{}
+	br.Name = s.Name()
+	if err = s.handle.LinkAdd(&br); err != nil {
+		s.log.Error("%s: error while bridge creating: %v", MsgPrefix, err)
+	} else {
+		s.log.Info("%s: bridge created.", MsgPrefix)
+	}
+	if err = s.handle.LinkSetUp(&br); err != nil {
+		s.log.Error("%s: error while bridge setting to UP state: %v", MsgPrefix, err)
+	}
+	return err
 }
 
-func (s *L2Bridge) Remove(dryrun bool) error {
+func (s *L2Bridge) Remove(dryrun bool) (err error) {
 	if dryrun {
-		s.log.Info("%s dryrun: Bridge '%s' removed.", MsgPrefix, s.Name())
+		s.log.Info("%s: dryrun: Bridge '%s' removed.", MsgPrefix, s.Name())
 		return nil
 	}
-	return nil
+	s.log.Info("%s: Removing bridge '%s'", MsgPrefix, s.Name())
+	link, _ := netlink.LinkByName(s.Name())
+	if err = s.handle.LinkSetDown(link); err != nil {
+		s.log.Error("%s: error while bridge removing: %v", MsgPrefix, err)
+		return err
+	}
+	if err = s.handle.LinkAdd(link); err != nil {
+		s.log.Error("%s: error while bridge removing: %v", MsgPrefix, err)
+	} else {
+		s.log.Info("%s: bridge removed.", MsgPrefix)
+	}
+	return err
 }
 
 func (s *L2Bridge) Modify(dryrun bool) error {
@@ -131,6 +153,7 @@ func (s *L2Bridge) Modify(dryrun bool) error {
 		s.log.Info("%s dryrun: Bridge '%s' modifyed.", MsgPrefix, s.Name())
 		return nil
 	}
+	// br, _ := netlink.LinkByName(s.Name())
 	return nil
 }
 

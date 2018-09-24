@@ -77,12 +77,16 @@ func init() {
 		},
 	}}
 	App.Before = func(c *cli.Context) error {
+		var suffix = ""
 		if c.GlobalBool("debug") {
 			Log.SetMinimalFacility(logger.LOG_D)
 		} else {
 			Log.SetMinimalFacility(logger.LOG_I)
 		}
-		Log.Debug("L23network started.")
+		if c.GlobalBool("dry-run") {
+			suffix = " (dry-run)"
+		}
+		Log.Debug("L23network started.%s", suffix)
 		return nil
 	}
 	App.CommandNotFound = func(c *cli.Context, cmd string) {
@@ -148,14 +152,14 @@ func RunNetConfig(c *cli.Context) (err error) {
 
 		if IndexString(diffNetState.Waste, npName) >= 0 {
 			// this NP should be removed
-			oper.Remove(true)
+			oper.Remove(c.GlobalBool("dry-run"))
 			// npRemoved = append(npRemoved, npName)
 		} else if IndexString(diffNetState.New, npName) >= 0 {
 			// this NP shoujld be created
-			oper.Create(true)
+			oper.Create(c.GlobalBool("dry-run"))
 			// npCreated = append(npCreated, npName)
 		} else if IndexString(diffNetState.Different, npName) >= 0 {
-			oper.Modify(true)
+			oper.Modify(c.GlobalBool("dry-run"))
 			// npModifyed = append(npModifyed, npName)
 		}
 	}
