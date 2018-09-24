@@ -1,17 +1,19 @@
 ---
 version: 1.2
 provider: lnx
-# interfaces:
-#   eth1: {}
+interfaces:
+  eth0: {}
 transformations:
   - name: br1
     mtu:  1496
     action: bridge
-  - name: eth1
+  - name: eth0.101
     action: port
+    parent: eth0
+    vlan_id: 101
     bridge: br1
-  - name: tunl0
-    action: remove
+  # - name: tunl0
+  #   action: remove
 endpoints:
   br1:
     IP:

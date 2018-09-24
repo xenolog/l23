@@ -144,7 +144,7 @@ func RunNetConfig(c *cli.Context) (err error) {
 		Log.Debug("Processing '%v'", npName)
 		action, ok := NSoperators[wantedNetState.Link[npName].Action]
 		if !ok {
-			Log.Warn("Unsupported actiom '%s' for '%s', skipped", action, npName)
+			Log.Warn("Unsupported action '%s' for '%s', skipped", action, npName)
 			continue
 		}
 		oper := action.(func() lnx.NpOperator)() // should be blugin_base.NpOperator

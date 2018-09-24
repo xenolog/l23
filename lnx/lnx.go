@@ -4,6 +4,7 @@ import (
 	"github.com/vishvananda/netlink"
 	logger "github.com/xenolog/go-tiny-logger"
 	ifstatus "github.com/xenolog/l23/ifstatus"
+	yaml "gopkg.in/yaml.v2"
 )
 
 const (
@@ -74,10 +75,45 @@ type L2Port struct {
 	OpBase
 }
 
-func (s *L2Port) Create(dryrun bool) (err error) {
+func (s *L2Port) Create(dryrun bool) error {
 	if dryrun {
 		s.log.Info("%s dryrun: Port '%s' created.", MsgPrefix, s.Name())
 		return nil
+	}
+
+	s.log.Info("%s Creating port '%s'", MsgPrefix, s.Name())
+
+	// check whether this port is HW device
+	link, err := netlink.LinkByName(s.Name())
+	if err == nil {
+		s.log.Error("%s found existed port", MsgPrefix)
+		report, _ := yaml.Marshal(link.Attrs())
+		s.log.Debug("%s", report)
+		return err
+	}
+
+	if s.wantedState.L2.Parent != "" && s.wantedState.L2.Vlan_id > 0 {
+		// vlan over parent
+		parent_id := 0
+		if parent, err := netlink.LinkByName(s.wantedState.L2.Parent); err != nil {
+			s.log.Error("%s Can't find interface '%s' as parent for '%s': %v", MsgPrefix, s.wantedState.L2.Parent, s.Name(), err)
+			return err
+		} else {
+			parent_id = parent.Attrs().Index
+		}
+		vlan := netlink.Vlan{
+			VlanId: s.wantedState.L2.Vlan_id,
+		}
+		vlan.Name = s.Name()
+		vlan.ParentIndex = parent_id
+		if err := s.handle.LinkAdd(&vlan); err != nil {
+			s.log.Error("%s Can't create vlan '%s': %v", MsgPrefix, s.Name(), err)
+			return err
+		}
+		err := s.Modify(false)
+		return err
+	} else {
+		s.log.Error("%s Not implementing, because TBD", MsgPrefix)
 	}
 
 	return nil
@@ -88,6 +124,18 @@ func (s *L2Port) Remove(dryrun bool) error {
 		s.log.Info("%s dryrun: Port '%s' removed.", MsgPrefix, s.Name())
 		return nil
 	}
+
+	s.log.Info("%s: Removing port '%s'", MsgPrefix, s.Name())
+	link, _ := netlink.LinkByName(s.Name())
+	if err := s.handle.LinkSetDown(link); err != nil {
+		s.log.Error("%s: error while port removing: %v", MsgPrefix, err)
+		return err
+	}
+	if err := s.handle.LinkAdd(link); err != nil {
+		s.log.Error("%s: error while port removing: %v", MsgPrefix, err)
+	} else {
+		s.log.Info("%s: port removed.", MsgPrefix)
+	}
 	return nil
 }
 
@@ -96,6 +144,48 @@ func (s *L2Port) Modify(dryrun bool) error {
 		s.log.Info("%s dryrun: Port '%s' modifyed.", MsgPrefix, s.Name())
 		return nil
 	}
+	s.log.Info("%s: Modifying port '%s'", MsgPrefix, s.Name())
+	link, _ := netlink.LinkByName(s.Name())
+	attrs := link.Attrs()
+
+	if err := s.handle.LinkSetDown(link); err != nil {
+		s.log.Error("%s: error while port set to DOWN state: %v", MsgPrefix, err)
+	}
+
+	if s.wantedState.L2.Mtu > 0 && s.wantedState.L2.Mtu != attrs.MTU {
+		s.log.Debug("%s: setting MTU to: %v", MsgPrefix, s.wantedState.L2.Mtu)
+		if err := s.handle.LinkSetMTU(link, s.wantedState.L2.Mtu); err != nil {
+			s.log.Error("%s: error while port set MTU: %v", MsgPrefix, err)
+		}
+	}
+
+	if s.wantedState.L2.Bridge != "" {
+		// attach to bridge
+		br, err := netlink.LinkByName(s.wantedState.L2.Bridge)
+		if br == nil || err != nil {
+			s.log.Debug("%s: bridge '%s' can't be located: %v", MsgPrefix, s.wantedState.L2.Bridge, err)
+		}
+
+		if err := s.handle.LinkSetMasterByIndex(link, br.Attrs().Index); err != nil {
+			s.log.Debug("%s: port can't be became a member of bridge '%s': %v", MsgPrefix, s.wantedState.L2.Bridge, err)
+			return err
+		}
+	} else {
+		// remove from bridge
+		if attrs.MasterIndex != 0 {
+			if err := s.handle.LinkSetNoMaster(link); err != nil {
+				s.log.Debug("%s: port can't removed from bridge: %v", MsgPrefix, err)
+			}
+		}
+	}
+
+	if s.wantedState.Online {
+		s.log.Debug("%s: setting to UP state", MsgPrefix)
+		if err := s.handle.LinkSetUp(link); err != nil {
+			s.log.Error("%s: error while port set to UP state: %v", MsgPrefix, err)
+		}
+	}
+
 	return nil
 }
 
@@ -127,7 +217,7 @@ func (s *L2Bridge) Create(dryrun bool) (err error) {
 		s.log.Info("%s: bridge created.", MsgPrefix)
 	}
 
-	err = s.Modify(dryrun)
+	err = s.Modify(false)
 
 	return err
 }
