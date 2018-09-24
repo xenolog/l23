@@ -4,6 +4,7 @@ import (
 	"github.com/vishvananda/netlink"
 	logger "github.com/xenolog/go-tiny-logger"
 	ifstatus "github.com/xenolog/l23/ifstatus"
+	. "github.com/xenolog/l23/utils"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -21,8 +22,11 @@ type NpOperator interface {
 	Remove(bool) error
 	Modify(bool) error
 	Name() string
+	IPv4addrList() []string
 	//todo(sv): Status() *NpLinkStatus // move status generation here
 	//todo(sv): NS2Status() *NpLinkStatus // move wanted status generation from ns
+	// Link() netlink.Link	// This two methods are Provider-specific
+	// IfIndex() int		// IMHO it is a big cons to intlude to interface
 }
 
 type NpOperators map[string]interface{}
@@ -67,6 +71,86 @@ func (s *OpBase) setupGlobals() {
 
 func (s *OpBase) Name() string {
 	return s.wantedState.Name
+}
+
+func (s *OpBase) Link() netlink.Link {
+	linkName := s.Name()
+	link, err := netlink.LinkByName(linkName)
+	if err != nil {
+		s.log.Error("%s Can't get attributes for interface '%s' : %v", MsgPrefix, linkName, err)
+		return nil
+	}
+	return link
+
+}
+
+func (s *OpBase) IfIndex() int {
+	link := s.Link()
+	if link == nil {
+		return 0
+	}
+	return link.Attrs().Index
+
+}
+
+// returns address list in the original order
+func (s *OpBase) IPv4addrList() []string {
+
+	rv := []string{}
+	if addrs, err := s.handle.AddrList(s.Link(), netlink.FAMILY_V4); err == nil {
+		for _, addr := range addrs {
+			rv = append(rv, addr.IPNet.String())
+		}
+	} else {
+		s.log.Error("%s Error while fetch L3 info for '%s' %v", MsgPrefix, s.Name(), err)
+	}
+
+	return rv
+}
+
+func (s *OpBase) allignIPv4list() {
+	runtimeIPs := s.IPv4addrList()
+
+	// plan to add non-existing IPs
+	toAdd := []string{}
+	for _, addr := range s.wantedState.L3.IPv4 {
+		if IndexString(runtimeIPs, addr) < 0 {
+			toAdd = append(toAdd, addr)
+		}
+	}
+
+	// plan to remove unwanted IPs
+	toRemove := []string{}
+	for _, addr := range runtimeIPs {
+		if IndexString(s.wantedState.L3.IPv4, addr) < 0 {
+			toRemove = append(toRemove, addr)
+		}
+	}
+
+	// add required IPs
+	for _, addr := range toAdd {
+		s.log.Debug("%s Adding IPv4 addr '%s' to interface '%s'", MsgPrefix, addr, s.Name())
+		if a, err := netlink.ParseAddr(addr); err == nil {
+			if err := s.handle.AddrAdd(s.Link(), a); err != nil {
+				s.log.Error("%s Can't add IPv4 addr '%s' to interface '%s': %v", MsgPrefix, addr, s.Name(), err)
+			}
+		} else {
+			s.log.Error("%s Can't parse IPv4 addr '%s' while addition: %v", MsgPrefix, addr, err)
+		}
+	}
+
+	// remove unwanted IPs
+	for _, addr := range toRemove {
+		s.log.Debug("%s Removing IPv4 addr '%s' on interface '%s'", MsgPrefix, addr, s.Name())
+		if a, err := netlink.ParseAddr(addr); err == nil {
+			if err := s.handle.AddrDel(s.Link(), a); err != nil {
+				s.log.Error("%s Can't remove IPv4 addr '%s' on interface '%s': %v", MsgPrefix, addr, s.Name(), err)
+			}
+		} else {
+			s.log.Error("%s Can't parse IPv4 addr '%s' while addition: %v", MsgPrefix, addr, err)
+		}
+	}
+
 }
 
 // -----------------------------------------------------------------------------
@@ -186,6 +270,8 @@ func (s *L2Port) Modify(dryrun bool) error {
 		}
 	}
 
+	s.allignIPv4list()
+
 	return nil
 }
 
@@ -268,6 +354,8 @@ func (s *L2Bridge) Modify(dryrun bool) (err error) {
 			s.log.Error("%s: error while bridge set to UP state: %v", MsgPrefix, err)
 		}
 	}
+
+	s.allignIPv4list()
 
 	return err
 }
