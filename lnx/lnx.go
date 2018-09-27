@@ -18,7 +18,7 @@ var LnxRtPluginEntryPoint *LnxRtPlugin
 type LnxRtPlugin struct {
 	log    *logger.Logger
 	handle *netlink.Handle
-	nps    *ifstatus.NpsStatus
+	nps    *ifstatus.TopologyState
 }
 
 // -----------------------------------------------------------------------------
@@ -27,11 +27,11 @@ type OpBase struct {
 	plugin      *LnxRtPlugin
 	log         *logger.Logger
 	handle      *netlink.Handle
-	wantedState *ifstatus.NpLinkStatus
-	rtState     *ifstatus.NpLinkStatus
+	wantedState *ifstatus.NPState
+	rtState     *ifstatus.NPState
 }
 
-func (s *OpBase) Init(wantedState *ifstatus.NpLinkStatus) error {
+func (s *OpBase) Init(wantedState *ifstatus.NPState) error {
 	s.wantedState = wantedState
 	s.rtState = nil
 	return nil
@@ -377,15 +377,15 @@ func (s *LnxRtPlugin) Version() string {
 }
 
 func (s *LnxRtPlugin) Observe() error {
-	s.nps = ifstatus.NewNpsStatus()
+	s.nps = ifstatus.NewTopologyState()
 	return s.nps.ObserveRuntime()
 }
 
-func (s *LnxRtPlugin) NetworkState() *ifstatus.NpsStatus {
+func (s *LnxRtPlugin) NetworkState() *ifstatus.TopologyState {
 	return s.nps
 }
 
-func (s *LnxRtPlugin) GetNp(name string) *ifstatus.NpLinkStatus {
+func (s *LnxRtPlugin) GetNp(name string) *ifstatus.NPState {
 	rv, ok := s.nps.Link[name]
 	if !ok {
 		s.log.Error("Network primitive '%s' not found in the stored base", name)

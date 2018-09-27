@@ -54,7 +54,7 @@ func UtilityListNetworkPrimitives(c *cli.Context) error {
 		online   string
 	)
 
-	nps := ifstatus.NewNpsStatus()
+	nps := ifstatus.NewTopologyState()
 	nps.ObserveRuntime()
 
 	for _, link := range nps.Link {

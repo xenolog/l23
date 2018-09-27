@@ -6,6 +6,7 @@ import (
 	cli "github.com/urfave/cli"
 	logger "github.com/xenolog/go-tiny-logger"
 	"github.com/xenolog/l23/lnx"
+	"github.com/xenolog/l23/plugin"
 	. "github.com/xenolog/l23/utils"
 )
 
@@ -118,7 +119,7 @@ func RunNetConfig(c *cli.Context) (err error) {
 	Log.Debug("NetworkScheme loaded")
 
 	// generate wanted network topology
-	wantedNetState := ns.NpsStatus()
+	wantedNetState := ns.TopologyState()
 	Log.Debug("NetworkScheme processed")
 
 	// initialize and cinfigure LnxRtPlugin
@@ -147,7 +148,7 @@ func RunNetConfig(c *cli.Context) (err error) {
 			Log.Warn("Unsupported action '%s' for '%s', skipped", action, npName)
 			continue
 		}
-		oper := action.(func() lnx.NpOperator)() // should be blugin_base.NpOperator
+		oper := action.(func() plugin.NpOperator)()
 		oper.Init(wantedNetState.Link[npName])
 
 		if IndexString(diffNetState.Waste, npName) >= 0 {

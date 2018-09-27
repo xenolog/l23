@@ -11,7 +11,7 @@ import (
 
 var Log *logger.Logger
 
-type L2Status struct {
+type L2State struct {
 	Mtu          int
 	Bridge       string
 	Parent       string
@@ -22,13 +22,13 @@ type L2Status struct {
 	// Type         string
 }
 
-type L3Status struct {
+type L3State struct {
 	IPv4 []string // in the CIDR notation
 	// IPv6 []IpAddr6
 }
 
 // Np -- is a acronym for Network Primitive
-type NpLinkStatus struct {
+type NPState struct {
 	Name     string
 	Action   string
 	IfIndex  int
@@ -36,12 +36,12 @@ type NpLinkStatus struct {
 	linkType string
 	Provider string
 	Online   bool
-	L2       L2Status
-	L3       L3Status
+	L2       L2State
+	L3       L3State
 }
 
 // Fill LinkStatus data structure by LinkAttrs
-func (s *NpLinkStatus) FillByNetlinkLink(link netlink.Link) {
+func (s *NPState) FillByNetlinkLink(link netlink.Link) {
 	s.attrs = link.Attrs()
 	s.linkType = link.Type()
 	s.Name = s.attrs.Name
@@ -49,14 +49,14 @@ func (s *NpLinkStatus) FillByNetlinkLink(link netlink.Link) {
 	if s.attrs.Flags&net.FlagUp != 0 {
 		s.Online = true
 	}
-	s.fillL2statusByNetlinkLink()
+	s.fillL2stateByNetlinkLink()
 }
 
-func (s *NpLinkStatus) fillL2statusByNetlinkLink() {
+func (s *NPState) fillL2stateByNetlinkLink() {
 	s.L2.Mtu = s.attrs.MTU
 }
 
-func (s *NpLinkStatus) FillByNetlinkAddrList(addrs *[]netlink.Addr) {
+func (s *NPState) FillByNetlinkAddrList(addrs *[]netlink.Addr) {
 	s.L3.IPv4 = make([]string, len(*addrs))
 	for _, addr := range *addrs {
 		s.L3.IPv4 = append(s.L3.IPv4, addr.IPNet.String())
@@ -64,48 +64,48 @@ func (s *NpLinkStatus) FillByNetlinkAddrList(addrs *[]netlink.Addr) {
 }
 
 // Next methods implements netlink.Link interface
-func (s *NpLinkStatus) Attrs() *netlink.LinkAttrs {
+func (s *NPState) Attrs() *netlink.LinkAttrs {
 	return s.attrs
 }
-func (s *NpLinkStatus) Type() string {
+func (s *NPState) Type() string {
 	return s.linkType
 }
 
-func (s *NpLinkStatus) String() string {
+func (s *NPState) String() string {
 	rv, _ := yaml.Marshal(s)
 	return string(rv)
 }
 
 //------------------------------------------------------------------------------
 
-type DiffNpsStatuses struct {
+type DiffTopologyStatees struct {
 	New       []string
 	Waste     []string
 	Different []string
 }
 
-func (s *DiffNpsStatuses) IsEqual() bool {
+func (s *DiffTopologyStatees) IsEqual() bool {
 	return len(s.New) == 0 && len(s.Waste) == 0 && len(s.Different) == 0
 }
-func (s *DiffNpsStatuses) String() string {
+func (s *DiffTopologyStatees) String() string {
 	rv, _ := yaml.Marshal(s)
 	return string(rv)
 }
 
 //------------------------------------------------------------------------------
 
-type NpsStatus struct {
-	Link            map[string]*NpLinkStatus
+type TopologyState struct {
+	Link            map[string]*NPState // Should be renamed to NP
 	Order           []string
-	DefaultProvider string
-	handle          *netlink.Handle
+	DefaultProvider string          // Do we really need this field?
+	handle          *netlink.Handle // Should be moved to corresponded plugin
 }
 
-// This method allow to compare NpsStatus with another
-// NpsStatus (runtime and wanted, for example)
+// This method allow to compare TopologyState with another
+// TopologyState (runtime and wanted, for example)
 // and return report about diferences
-func (s *NpsStatus) Compare(n *NpsStatus) *DiffNpsStatuses {
-	rv := new(DiffNpsStatuses)
+func (s *TopologyState) Compare(n *TopologyState) *DiffTopologyStatees {
+	rv := new(DiffTopologyStatees)
 
 	// check for aded Np
 	for key, _ := range n.Link {
@@ -132,7 +132,7 @@ func (s *NpsStatus) Compare(n *NpsStatus) *DiffNpsStatuses {
 
 // Setup netlink handler if need.
 // if nil given -- netlink handler will be created automatically
-func (s *NpsStatus) setHandle(hh *netlink.Handle) (err error) {
+func (s *TopologyState) setHandle(hh *netlink.Handle) (err error) {
 	if s.handle == nil && hh == nil {
 		// generate new handle if need
 		if s.handle, err = netlink.NewHandle(); err != nil {
@@ -145,7 +145,7 @@ func (s *NpsStatus) setHandle(hh *netlink.Handle) (err error) {
 	return
 }
 
-func (s *NpsStatus) ObserveRuntime() (err error) {
+func (s *TopologyState) ObserveRuntime() (err error) {
 	var linkList []netlink.Link
 
 	s.setHandle(nil)
@@ -158,7 +158,7 @@ func (s *NpsStatus) ObserveRuntime() (err error) {
 	//links := reflect.ValueOf(linkList).MapKeys()
 	for _, link := range linkList {
 		linkName := link.Attrs().Name
-		s.Link[linkName] = new(NpLinkStatus)
+		s.Link[linkName] = new(NPState)
 		s.Link[linkName].FillByNetlinkLink(link)
 		if ipaddrInfo, err := s.handle.AddrList(link, netlink.FAMILY_V4); err == nil {
 			s.Link[linkName].FillByNetlinkAddrList(&ipaddrInfo)
@@ -169,14 +169,14 @@ func (s *NpsStatus) ObserveRuntime() (err error) {
 	return nil
 }
 
-func (s *NpsStatus) String() string {
+func (s *TopologyState) String() string {
 	rv, _ := yaml.Marshal(s)
 	return string(rv)
 }
 
-func NewNpsStatus() *NpsStatus {
-	rv := new(NpsStatus)
-	rv.Link = make(map[string]*NpLinkStatus)
+func NewTopologyState() *TopologyState {
+	rv := new(TopologyState)
+	rv.Link = make(map[string]*NPState)
 	return rv
 }
 

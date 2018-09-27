@@ -6,62 +6,62 @@ import (
 	// logger "github.com/xenolog/go-tiny-logger"
 )
 
-func RuntimeNpStatuses() *NpsStatus {
+func RuntimeNpStatuses() *TopologyState {
 	var linkName string
-	rv := &NpsStatus{
-		Link: make(map[string]*NpLinkStatus),
+	rv := &TopologyState{
+		Link: make(map[string]*NPState),
 	}
 
 	linkName = "lo"
-	rv.Link[linkName] = &NpLinkStatus{
+	rv.Link[linkName] = &NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
-		L3: L3Status{
+		L3: L3State{
 			IPv4: []string{"127.0.0.1/8"},
 		},
 	}
 
 	linkName = "eth1"
-	rv.Link[linkName] = &NpLinkStatus{
+	rv.Link[linkName] = &NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
-		L3: L3Status{
+		L3: L3State{
 			IPv4: []string{"10.20.30.40/24", "20.30.40.50/25"},
 		},
 	}
 	return rv
 }
 
-func RuntimeNpStatusesForRemove() *NpsStatus {
+func RuntimeNpStatusesForRemove() *TopologyState {
 	var linkName string
-	rv := &NpsStatus{
-		Link: make(map[string]*NpLinkStatus),
+	rv := &TopologyState{
+		Link: make(map[string]*NPState),
 	}
 
 	linkName = "lo"
-	rv.Link[linkName] = &NpLinkStatus{
+	rv.Link[linkName] = &NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
-		L3: L3Status{
+		L3: L3State{
 			IPv4: []string{"127.0.0.1/8"},
 		},
 	}
 
 	linkName = "eth0"
-	rv.Link[linkName] = &NpLinkStatus{
+	rv.Link[linkName] = &NPState{
 		Name:   linkName,
 		Action: "remove",
 	}
 
 	linkName = "eth1"
-	rv.Link[linkName] = &NpLinkStatus{
+	rv.Link[linkName] = &NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
-		L3: L3Status{
+		L3: L3State{
 			IPv4: []string{"10.20.30.40/24", "20.30.40.50/25"},
 		},
 	}
@@ -126,11 +126,11 @@ func TestIfStatus__AddedIface(t *testing.T) {
 	runtimeNps := RuntimeNpStatuses()
 	wantedNps := RuntimeNpStatuses()
 	linkName := "eth2"
-	wantedNps.Link[linkName] = &NpLinkStatus{
+	wantedNps.Link[linkName] = &NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
-		L3: L3Status{
+		L3: L3State{
 			IPv4: []string{"192.168.0.1/24"},
 		},
 	}

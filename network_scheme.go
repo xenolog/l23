@@ -75,10 +75,10 @@ func (s *NetworkScheme) Load(r io.Reader) (err error) {
 	return
 }
 
-func (s *NetworkScheme) NpsStatus() *ifstatus.NpsStatus {
+func (s *NetworkScheme) TopologyState() *ifstatus.TopologyState {
 
-	rv := &ifstatus.NpsStatus{
-		Link:            make(map[string]*ifstatus.NpLinkStatus),
+	rv := &ifstatus.TopologyState{
+		Link:            make(map[string]*ifstatus.NPState),
 		Order:           []string{},
 		DefaultProvider: "lnx",
 	}
@@ -95,7 +95,7 @@ func (s *NetworkScheme) NpsStatus() *ifstatus.NpsStatus {
 	sort.Strings(iflist)
 	for _, key := range iflist {
 		if _, ok := rv.Link[key]; !ok {
-			rv.Link[key] = new(ifstatus.NpLinkStatus)
+			rv.Link[key] = new(ifstatus.NPState)
 			rv.Link[key].Name = key
 			rv.Link[key].Online = true
 			rv.Order = append(rv.Order, key)
@@ -116,7 +116,7 @@ func (s *NetworkScheme) NpsStatus() *ifstatus.NpsStatus {
 			rv.Order = append(rv.Order, tr.Name)
 		}
 		if _, ok := rv.Link[tr.Name]; !ok {
-			rv.Link[tr.Name] = new(ifstatus.NpLinkStatus)
+			rv.Link[tr.Name] = new(ifstatus.NPState)
 			rv.Link[tr.Name].Name = tr.Name
 			rv.Link[tr.Name].Online = true
 		}
@@ -145,7 +145,7 @@ func (s *NetworkScheme) NpsStatus() *ifstatus.NpsStatus {
 			continue
 		}
 		if _, ok := rv.Link[key]; !ok {
-			rv.Link[key] = new(ifstatus.NpLinkStatus)
+			rv.Link[key] = new(ifstatus.NPState)
 			rv.Link[key].Name = key
 			rv.Link[key].Online = true
 		}
