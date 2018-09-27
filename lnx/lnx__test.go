@@ -7,6 +7,7 @@ import (
 
 	logger "github.com/xenolog/go-tiny-logger"
 	. "github.com/xenolog/l23/ifstatus"
+	. "github.com/xenolog/l23/plugin"
 	. "github.com/xenolog/l23/utils"
 )
 
