@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	ifstatus "github.com/xenolog/l23/ifstatus"
+	npstate "github.com/xenolog/l23/npstate"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -33,42 +33,42 @@ aaa: bbb
 `
 }
 
-func TopologyState_1() *ifstatus.TopologyState {
+func TopologyState_1() *npstate.TopologyState {
 	var linkName string
-	rv := &ifstatus.TopologyState{
-		Link: make(map[string]*ifstatus.NPState),
+	rv := &npstate.TopologyState{
+		Link: make(map[string]*npstate.NPState),
 	}
 
 	linkName = "eth0"
-	rv.Link[linkName] = &ifstatus.NPState{
+	rv.Link[linkName] = &npstate.NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
-		L2: ifstatus.L2State{
+		L2: npstate.L2State{
 			Mtu: 2048,
 		},
-		L3: ifstatus.L3State{
+		L3: npstate.L3State{
 			IPv4: []string{"10.1.3.11/24", "10.20.30.40/24"},
 		},
 		Provider: "lnx",
 	}
 
 	linkName = "eth1"
-	rv.Link[linkName] = &ifstatus.NPState{
+	rv.Link[linkName] = &npstate.NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
-		L2: ifstatus.L2State{
+		L2: npstate.L2State{
 			Mtu: 999,
 		},
-		L3: ifstatus.L3State{
+		L3: npstate.L3State{
 			IPv4: nil,
 		},
 		Provider: "lnx",
 	}
 
 	linkName = "eth2"
-	rv.Link[linkName] = &ifstatus.NPState{
+	rv.Link[linkName] = &npstate.NPState{
 		Name:     linkName,
 		Action:   "port",
 		Online:   true,
@@ -113,42 +113,42 @@ aaa: bbb
 `
 }
 
-func TopologyState_2() *ifstatus.TopologyState {
+func TopologyState_2() *npstate.TopologyState {
 	var linkName string
-	rv := &ifstatus.TopologyState{
-		Link: make(map[string]*ifstatus.NPState),
+	rv := &npstate.TopologyState{
+		Link: make(map[string]*npstate.NPState),
 	}
 
 	linkName = "eth0"
-	rv.Link[linkName] = &ifstatus.NPState{
+	rv.Link[linkName] = &npstate.NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
-		L2: ifstatus.L2State{
+		L2: npstate.L2State{
 			Mtu: 9000,
 		},
-		L3: ifstatus.L3State{
+		L3: npstate.L3State{
 			IPv4: []string{"10.1.3.11/24", "10.20.30.40/24"},
 		},
 		Provider: "lnx",
 	}
 
 	linkName = "eth1"
-	rv.Link[linkName] = &ifstatus.NPState{
+	rv.Link[linkName] = &npstate.NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
-		L2: ifstatus.L2State{
+		L2: npstate.L2State{
 			Mtu: 2048,
 		},
-		L3: ifstatus.L3State{
+		L3: npstate.L3State{
 			IPv4: nil,
 		},
 		Provider: "lnx",
 	}
 
 	linkName = "eth2"
-	rv.Link[linkName] = &ifstatus.NPState{
+	rv.Link[linkName] = &npstate.NPState{
 		Name:     linkName,
 		Action:   "port",
 		Online:   true,

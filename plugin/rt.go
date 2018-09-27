@@ -3,13 +3,13 @@ package plugin
 import (
 	"github.com/vishvananda/netlink"
 	logger "github.com/xenolog/go-tiny-logger"
-	ifstatus "github.com/xenolog/l23/ifstatus"
+	npstate "github.com/xenolog/l23/npstate"
 )
 
 // -----------------------------------------------------------------------------
 
 type NpOperator interface {
-	Init(*ifstatus.NPState) error
+	Init(*npstate.NPState) error
 	Create(bool) error
 	Remove(bool) error
 	Modify(bool) error
@@ -27,9 +27,9 @@ type RtPlugin interface {
 	Version() string
 	Operators() NpOperators
 	Observe() error // Observe runtime and build NPState
-	NetworkState() *ifstatus.TopologyState
+	NetworkState() *npstate.TopologyState
 	GetLogger() *logger.Logger
-	// GetNp(string) *ifstatus.NPState
+	// GetNp(string) *npstate.NPState
 	// GetHandle() *netlink.Handle
 }
 

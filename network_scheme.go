@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"sort"
 
-	ifstatus "github.com/xenolog/l23/ifstatus"
+	npstate "github.com/xenolog/l23/npstate"
 
 	. "github.com/xenolog/l23/utils"
 	yaml "gopkg.in/yaml.v2"
@@ -75,10 +75,10 @@ func (s *NetworkScheme) Load(r io.Reader) (err error) {
 	return
 }
 
-func (s *NetworkScheme) TopologyState() *ifstatus.TopologyState {
+func (s *NetworkScheme) TopologyState() *npstate.TopologyState {
 
-	rv := &ifstatus.TopologyState{
-		Link:            make(map[string]*ifstatus.NPState),
+	rv := &npstate.TopologyState{
+		Link:            make(map[string]*npstate.NPState),
 		Order:           []string{},
 		DefaultProvider: "lnx",
 	}
@@ -95,7 +95,7 @@ func (s *NetworkScheme) TopologyState() *ifstatus.TopologyState {
 	sort.Strings(iflist)
 	for _, key := range iflist {
 		if _, ok := rv.Link[key]; !ok {
-			rv.Link[key] = new(ifstatus.NPState)
+			rv.Link[key] = new(npstate.NPState)
 			rv.Link[key].Name = key
 			rv.Link[key].Online = true
 			rv.Order = append(rv.Order, key)
@@ -116,7 +116,7 @@ func (s *NetworkScheme) TopologyState() *ifstatus.TopologyState {
 			rv.Order = append(rv.Order, tr.Name)
 		}
 		if _, ok := rv.Link[tr.Name]; !ok {
-			rv.Link[tr.Name] = new(ifstatus.NPState)
+			rv.Link[tr.Name] = new(npstate.NPState)
 			rv.Link[tr.Name].Name = tr.Name
 			rv.Link[tr.Name].Online = true
 		}
@@ -145,7 +145,7 @@ func (s *NetworkScheme) TopologyState() *ifstatus.TopologyState {
 			continue
 		}
 		if _, ok := rv.Link[key]; !ok {
-			rv.Link[key] = new(ifstatus.NPState)
+			rv.Link[key] = new(npstate.NPState)
 			rv.Link[key].Name = key
 			rv.Link[key].Online = true
 		}

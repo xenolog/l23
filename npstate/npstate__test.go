@@ -1,4 +1,4 @@
-package ifstatus
+package npstate
 
 import (
 	"reflect"
@@ -68,7 +68,7 @@ func RuntimeNpStatusesForRemove() *TopologyState {
 	return rv
 }
 
-func TestIfStatus__EqualNpStatuses(t *testing.T) {
+func Testnpstate__EqualNpStatuses(t *testing.T) {
 	runtimeNps := RuntimeNpStatuses()
 	wantedNps := RuntimeNpStatuses()
 	diff := runtimeNps.Compare(wantedNps)
@@ -81,7 +81,7 @@ func TestIfStatus__EqualNpStatuses(t *testing.T) {
 	}
 }
 
-func TestIfStatus__ReducedIface(t *testing.T) {
+func Testnpstate__ReducedIface(t *testing.T) {
 	linkName := "eth1"
 	runtimeNps := RuntimeNpStatuses()
 	wantedNps := RuntimeNpStatuses()
@@ -99,7 +99,7 @@ func TestIfStatus__ReducedIface(t *testing.T) {
 
 }
 
-func TestIfStatus__ReducedIface__by_remove_action(t *testing.T) {
+func Testnpstate__ReducedIface__by_remove_action(t *testing.T) {
 	linkName := "eth0"
 	runtimeNps := RuntimeNpStatusesForRemove()
 	wantedNps := RuntimeNpStatusesForRemove()
@@ -122,7 +122,7 @@ func TestIfStatus__ReducedIface__by_remove_action(t *testing.T) {
 
 }
 
-func TestIfStatus__AddedIface(t *testing.T) {
+func Testnpstate__AddedIface(t *testing.T) {
 	runtimeNps := RuntimeNpStatuses()
 	wantedNps := RuntimeNpStatuses()
 	linkName := "eth2"
@@ -146,7 +146,7 @@ func TestIfStatus__AddedIface(t *testing.T) {
 	}
 
 }
-func TestIfStatus__DifferentIface(t *testing.T) {
+func Testnpstate__DifferentIface(t *testing.T) {
 	runtimeNps := RuntimeNpStatuses()
 	wantedNps := RuntimeNpStatuses()
 	linkName := "eth1"

@@ -1,4 +1,4 @@
-package ifstatus
+package npstate
 
 import (
 	"net"
