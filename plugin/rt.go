@@ -16,7 +16,7 @@ type NpOperator interface {
 	Name() string
 	IPv4addrList() []string
 	//todo(sv): State() *NPState // move status generation here
-	// Link() netlink.Link	// This two methods are Provider-specific
+	// Link() netlink.NP	// This two methods are Provider-specific
 	// IfIndex() int		// IMHO it is a big cons to intlude to interface
 }
 

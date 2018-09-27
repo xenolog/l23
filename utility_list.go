@@ -57,7 +57,7 @@ func UtilityListNetworkPrimitives(c *cli.Context) error {
 	nps := npstate.NewTopologyState()
 	nps.ObserveRuntime()
 
-	for _, link := range nps.Link {
+	for _, link := range nps.NP {
 		linkAttrs := link.Attrs()
 		if linkAttrs.Alias == "" {
 			linkName = link.Name

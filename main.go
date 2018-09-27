@@ -143,13 +143,13 @@ func RunNetConfig(c *cli.Context) (err error) {
 	// into network configuration
 	for _, npName := range wantedNetState.Order {
 		Log.Debug("Processing '%v'", npName)
-		action, ok := NSoperators[wantedNetState.Link[npName].Action]
+		action, ok := NSoperators[wantedNetState.NP[npName].Action]
 		if !ok {
 			Log.Warn("Unsupported action '%s' for '%s', skipped", action, npName)
 			continue
 		}
 		oper := action.(func() plugin.NpOperator)()
-		oper.Init(wantedNetState.Link[npName])
+		oper.Init(wantedNetState.NP[npName])
 
 		if IndexString(diffNetState.Waste, npName) >= 0 {
 			// this NP should be removed

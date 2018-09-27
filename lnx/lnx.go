@@ -386,7 +386,7 @@ func (s *LnxRtPlugin) NetworkState() *npstate.TopologyState {
 }
 
 func (s *LnxRtPlugin) GetNp(name string) *npstate.NPState {
-	rv, ok := s.nps.Link[name]
+	rv, ok := s.nps.NP[name]
 	if !ok {
 		s.log.Error("Network primitive '%s' not found in the stored base", name)
 		return nil

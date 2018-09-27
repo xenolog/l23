@@ -36,11 +36,11 @@ aaa: bbb
 func TopologyState_1() *npstate.TopologyState {
 	var linkName string
 	rv := &npstate.TopologyState{
-		Link: make(map[string]*npstate.NPState),
+		NP: make(map[string]*npstate.NPState),
 	}
 
 	linkName = "eth0"
-	rv.Link[linkName] = &npstate.NPState{
+	rv.NP[linkName] = &npstate.NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
@@ -54,7 +54,7 @@ func TopologyState_1() *npstate.TopologyState {
 	}
 
 	linkName = "eth1"
-	rv.Link[linkName] = &npstate.NPState{
+	rv.NP[linkName] = &npstate.NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
@@ -68,7 +68,7 @@ func TopologyState_1() *npstate.TopologyState {
 	}
 
 	linkName = "eth2"
-	rv.Link[linkName] = &npstate.NPState{
+	rv.NP[linkName] = &npstate.NPState{
 		Name:     linkName,
 		Action:   "port",
 		Online:   true,
@@ -116,11 +116,11 @@ aaa: bbb
 func TopologyState_2() *npstate.TopologyState {
 	var linkName string
 	rv := &npstate.TopologyState{
-		Link: make(map[string]*npstate.NPState),
+		NP: make(map[string]*npstate.NPState),
 	}
 
 	linkName = "eth0"
-	rv.Link[linkName] = &npstate.NPState{
+	rv.NP[linkName] = &npstate.NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
@@ -134,7 +134,7 @@ func TopologyState_2() *npstate.TopologyState {
 	}
 
 	linkName = "eth1"
-	rv.Link[linkName] = &npstate.NPState{
+	rv.NP[linkName] = &npstate.NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
@@ -148,7 +148,7 @@ func TopologyState_2() *npstate.TopologyState {
 	}
 
 	linkName = "eth2"
-	rv.Link[linkName] = &npstate.NPState{
+	rv.NP[linkName] = &npstate.NPState{
 		Name:     linkName,
 		Action:   "port",
 		Online:   true,
@@ -298,8 +298,8 @@ transformations:
 		{"eth3", "ddd"}, // provider defined into interfaces section and does not touched into transformations
 		{"eth4", "ovs"}, // Default Provider used
 	} {
-		if nps.Link[m[0]].Provider != m[1] {
-			t.Logf("Wrong provider for %s: %v, instead %v", m[0], nps.Link[m[0]].Provider, m[1])
+		if nps.NP[m[0]].Provider != m[1] {
+			t.Logf("Wrong provider for %s: %v, instead %v", m[0], nps.NP[m[0]].Provider, m[1])
 			t.Fail()
 		}
 	}
@@ -380,40 +380,40 @@ transformations:
 	nps := ns.TopologyState()
 	//todo(sv): True order should be
 
-	if nps.Link["xxx"].Name != "xxx" {
+	if nps.NP["xxx"].Name != "xxx" {
 		t.Logf("Field 'Name' not present or invalid")
 		t.Fail()
 	}
-	if nps.Link["xxx"].Action != "fuck" {
+	if nps.NP["xxx"].Action != "fuck" {
 		t.Logf("Field 'Action' not present or invalid")
 		t.Fail()
 	}
-	if nps.Link["xxx"].L2.Mtu != 9000 {
+	if nps.NP["xxx"].L2.Mtu != 9000 {
 		t.Logf("Field 'Mtu' not present or invalid")
 		t.Fail()
 	}
-	if nps.Link["xxx"].L2.Bridge != "aaa" {
+	if nps.NP["xxx"].L2.Bridge != "aaa" {
 		t.Logf("Field 'Bridge' not present or invalid")
 		t.Fail()
 	}
-	if nps.Link["xxx"].L2.Parent != "eth0" {
+	if nps.NP["xxx"].L2.Parent != "eth0" {
 		t.Logf("Field 'Parent' not present or invalid")
 		t.Fail()
 	}
-	if !reflect.DeepEqual(nps.Link["xxx"].L2.Slaves, []string{"x1", "x2"}) {
+	if !reflect.DeepEqual(nps.NP["xxx"].L2.Slaves, []string{"x1", "x2"}) {
 		t.Logf("Field 'Slaves' not present or invalid")
 		t.Fail()
 	}
-	if !nps.Link["xxx"].L2.Bpdu_forward {
+	if !nps.NP["xxx"].L2.Bpdu_forward {
 		t.Logf("Field 'Bpdu_forward' not present or invalid")
 		t.Fail()
 	}
-	if !nps.Link["xxx"].L2.Stp {
+	if !nps.NP["xxx"].L2.Stp {
 		t.Logf("Field 'Stp' not present or invalid")
 		t.Fail()
 	}
 	if t.Failed() {
-		txt, _ := yaml.Marshal(nps.Link["xxx"])
+		txt, _ := yaml.Marshal(nps.NP["xxx"])
 		t.Logf(string(txt))
 	}
 }

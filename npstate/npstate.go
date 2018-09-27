@@ -63,7 +63,7 @@ func (s *NPState) FillByNetlinkAddrList(addrs *[]netlink.Addr) {
 	}
 }
 
-// Next methods implements netlink.Link interface
+// Next methods implements netlink.NP interface
 func (s *NPState) Attrs() *netlink.LinkAttrs {
 	return s.attrs
 }
@@ -95,7 +95,7 @@ func (s *DiffTopologyStatees) String() string {
 //------------------------------------------------------------------------------
 
 type TopologyState struct {
-	Link            map[string]*NPState // Should be renamed to NP
+	NP              map[string]*NPState // Should be renamed to NP
 	Order           []string
 	DefaultProvider string          // Do we really need this field?
 	handle          *netlink.Handle // Should be moved to corresponded plugin
@@ -108,21 +108,21 @@ func (s *TopologyState) Compare(n *TopologyState) *DiffTopologyStatees {
 	rv := new(DiffTopologyStatees)
 
 	// check for aded Np
-	for key, _ := range n.Link {
-		if _, ok := s.Link[key]; !ok {
+	for key, _ := range n.NP {
+		if _, ok := s.NP[key]; !ok {
 			rv.New = append(rv.New, key)
 		}
 	}
 
 	// check for different and removed Np
-	for key, np := range s.Link {
-		if _, ok := n.Link[key]; !ok {
+	for key, np := range s.NP {
+		if _, ok := n.NP[key]; !ok {
 			rv.Waste = append(rv.Waste, key)
-		} else if n.Link[key].Action == "remove" {
+		} else if n.NP[key].Action == "remove" {
 			// "remove" is a pseudo-action for force add any network primitive to removal queue
-			n.Link[key].Action = ""
+			n.NP[key].Action = ""
 			rv.Waste = append(rv.Waste, key)
-		} else if !reflect.DeepEqual(np, n.Link[key]) {
+		} else if !reflect.DeepEqual(np, n.NP[key]) {
 			rv.Different = append(rv.Different, key)
 		}
 	}
@@ -158,10 +158,10 @@ func (s *TopologyState) ObserveRuntime() (err error) {
 	//links := reflect.ValueOf(linkList).MapKeys()
 	for _, link := range linkList {
 		linkName := link.Attrs().Name
-		s.Link[linkName] = new(NPState)
-		s.Link[linkName].FillByNetlinkLink(link)
+		s.NP[linkName] = new(NPState)
+		s.NP[linkName].FillByNetlinkLink(link)
 		if ipaddrInfo, err := s.handle.AddrList(link, netlink.FAMILY_V4); err == nil {
-			s.Link[linkName].FillByNetlinkAddrList(&ipaddrInfo)
+			s.NP[linkName].FillByNetlinkAddrList(&ipaddrInfo)
 		} else {
 			Log.Error("Error while fetch L3 info for '%s' %v", linkName, err)
 		}
@@ -176,7 +176,7 @@ func (s *TopologyState) String() string {
 
 func NewTopologyState() *TopologyState {
 	rv := new(TopologyState)
-	rv.Link = make(map[string]*NPState)
+	rv.NP = make(map[string]*NPState)
 	return rv
 }
 

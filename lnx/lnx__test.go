@@ -37,7 +37,7 @@ func RuntimeNpStatuses__1__exists() *TopologyState {
 	}
 
 	linkName = "lo"
-	rv.Link[linkName] = &NPState{
+	rv.NP[linkName] = &NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
@@ -47,7 +47,7 @@ func RuntimeNpStatuses__1__exists() *TopologyState {
 	}
 
 	linkName = "eth0"
-	rv.Link[linkName] = &NPState{
+	rv.NP[linkName] = &NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
@@ -57,7 +57,7 @@ func RuntimeNpStatuses__1__exists() *TopologyState {
 	}
 
 	linkName = "eth1"
-	rv.Link[linkName] = &NPState{
+	rv.NP[linkName] = &NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
@@ -67,13 +67,13 @@ func RuntimeNpStatuses__1__exists() *TopologyState {
 	}
 
 	linkName = "eth1.222"
-	rv.Link[linkName] = &NPState{
+	rv.NP[linkName] = &NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
 	}
 
-	for _, key := range reflect.ValueOf(rv.Link).MapKeys() {
+	for _, key := range reflect.ValueOf(rv.NP).MapKeys() {
 		rv.Order = append(rv.Order, key.String())
 	}
 	sort.Strings(rv.Order)
@@ -88,7 +88,7 @@ func RuntimeNpStatuses__1__wanted() *TopologyState {
 	}
 
 	linkName = "lo"
-	rv.Link[linkName] = &NPState{
+	rv.NP[linkName] = &NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
@@ -98,7 +98,7 @@ func RuntimeNpStatuses__1__wanted() *TopologyState {
 	}
 
 	linkName = "eth0"
-	rv.Link[linkName] = &NPState{
+	rv.NP[linkName] = &NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
@@ -108,7 +108,7 @@ func RuntimeNpStatuses__1__wanted() *TopologyState {
 	}
 
 	linkName = "eth1"
-	rv.Link[linkName] = &NPState{
+	rv.NP[linkName] = &NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
@@ -118,7 +118,7 @@ func RuntimeNpStatuses__1__wanted() *TopologyState {
 	}
 
 	linkName = "eth1.101"
-	rv.Link[linkName] = &NPState{
+	rv.NP[linkName] = &NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
@@ -130,7 +130,7 @@ func RuntimeNpStatuses__1__wanted() *TopologyState {
 	}
 
 	linkName = "br4"
-	rv.Link[linkName] = &NPState{
+	rv.NP[linkName] = &NPState{
 		Name:   linkName,
 		Action: "bridge",
 		Online: true,
@@ -138,7 +138,7 @@ func RuntimeNpStatuses__1__wanted() *TopologyState {
 			IPv4: []string{"10.40.40.1/24"},
 		},
 	}
-	for _, key := range reflect.ValueOf(rv.Link).MapKeys() {
+	for _, key := range reflect.ValueOf(rv.NP).MapKeys() {
 		rv.Order = append(rv.Order, key.String())
 	}
 	sort.Strings(rv.Order)
@@ -162,14 +162,14 @@ func TestLNX__1__MainRun(t *testing.T) {
 	npModifyed := []string{}
 	// walk ordr and implement diffs
 	for _, npName := range wantedNps.Order {
-		action, ok := operators[wantedNps.Link[npName].Action]
+		action, ok := operators[wantedNps.NP[npName].Action]
 		if !ok {
 			t.Logf("Unsupported actiom '%s' for '%s', skipped", action, npName)
 			t.Fail()
 			continue
 		}
 		oper := action.(func() NpOperator)()
-		oper.Init(wantedNps.Link[npName])
+		oper.Init(wantedNps.NP[npName])
 
 		t.Logf(npName)
 		if IndexString(diff.Waste, npName) >= 0 {

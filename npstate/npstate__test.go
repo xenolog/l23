@@ -13,7 +13,7 @@ func RuntimeNpStatuses() *TopologyState {
 	}
 
 	linkName = "lo"
-	rv.Link[linkName] = &NPState{
+	rv.NP[linkName] = &NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
@@ -23,7 +23,7 @@ func RuntimeNpStatuses() *TopologyState {
 	}
 
 	linkName = "eth1"
-	rv.Link[linkName] = &NPState{
+	rv.NP[linkName] = &NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
@@ -41,7 +41,7 @@ func RuntimeNpStatusesForRemove() *TopologyState {
 	}
 
 	linkName = "lo"
-	rv.Link[linkName] = &NPState{
+	rv.NP[linkName] = &NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
@@ -51,13 +51,13 @@ func RuntimeNpStatusesForRemove() *TopologyState {
 	}
 
 	linkName = "eth0"
-	rv.Link[linkName] = &NPState{
+	rv.NP[linkName] = &NPState{
 		Name:   linkName,
 		Action: "remove",
 	}
 
 	linkName = "eth1"
-	rv.Link[linkName] = &NPState{
+	rv.NP[linkName] = &NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
@@ -85,7 +85,7 @@ func Testnpstate__ReducedIface(t *testing.T) {
 	linkName := "eth1"
 	runtimeNps := RuntimeNpStatuses()
 	wantedNps := RuntimeNpStatuses()
-	delete(wantedNps.Link, linkName)
+	delete(wantedNps.NP, linkName)
 
 	diff := runtimeNps.Compare(wantedNps)
 
@@ -126,7 +126,7 @@ func Testnpstate__AddedIface(t *testing.T) {
 	runtimeNps := RuntimeNpStatuses()
 	wantedNps := RuntimeNpStatuses()
 	linkName := "eth2"
-	wantedNps.Link[linkName] = &NPState{
+	wantedNps.NP[linkName] = &NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
@@ -150,7 +150,7 @@ func Testnpstate__DifferentIface(t *testing.T) {
 	runtimeNps := RuntimeNpStatuses()
 	wantedNps := RuntimeNpStatuses()
 	linkName := "eth1"
-	wantedNps.Link[linkName].L3.IPv4 = []string{"10.20.30.40/24", "20.30.40.55/25"}
+	wantedNps.NP[linkName].L3.IPv4 = []string{"10.20.30.40/24", "20.30.40.55/25"}
 
 	diff := runtimeNps.Compare(wantedNps)
 
