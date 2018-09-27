@@ -14,6 +14,7 @@ type NpOperator interface {
 	Remove(bool) error
 	Modify(bool) error
 	Name() string
+	// Type() string
 	IPv4addrList() []string
 	//todo(sv): State() *NPState // move status generation here
 	// Link() netlink.NP	// This two methods are Provider-specific
@@ -26,8 +27,8 @@ type RtPlugin interface {
 	Init(*logger.Logger, *netlink.Handle) error
 	Version() string
 	Operators() NpOperators
-	Observe() error // Observe runtime and build NPState
-	NetworkState() *npstate.TopologyState
+	Observe() error                   // Observe runtime and build topology State
+	Topology() *npstate.TopologyState // returns runtime topology, collected by Observe()
 	GetLogger() *logger.Logger
 	// GetNp(string) *npstate.NPState
 	// GetHandle() *netlink.Handle

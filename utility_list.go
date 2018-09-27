@@ -6,7 +6,7 @@ import (
 
 	cli "github.com/urfave/cli"
 	"github.com/vishvananda/netlink"
-	npstate "github.com/xenolog/l23/npstate"
+	"github.com/xenolog/l23/lnx"
 )
 
 func UtilityListNetworkPrimitivesOld(c *cli.Context) error {
@@ -48,22 +48,19 @@ func UtilityListNetworkPrimitivesOld(c *cli.Context) error {
 
 func UtilityListNetworkPrimitives(c *cli.Context) error {
 	var (
-		// err      error
-		linkName string
-		ipaddrs  string
-		online   string
+		ipaddrs string
+		online  string
 	)
 
-	nps := npstate.NewTopologyState()
-	nps.ObserveRuntime()
+	// initialize and configure LnxRtPlugin
+	lnxRtPlugin := lnx.NewLnxRtPlugin()
+	lnxRtPlugin.Init(Log, nil)
+	lnxRtPlugin.Observe()
+	Log.Debug("LnxRtPlugin initialized")
+
+	nps := lnxRtPlugin.Topology()
 
 	for _, link := range nps.NP {
-		linkAttrs := link.Attrs()
-		if linkAttrs.Alias == "" {
-			linkName = link.Name
-		} else {
-			linkName = fmt.Sprintf("%s(%s)", link.Name, linkAttrs.Alias)
-		}
 
 		ipaddrs = ""
 		sep := ""
@@ -77,8 +74,7 @@ func UtilityListNetworkPrimitives(c *cli.Context) error {
 			online = "UP"
 		}
 
-		Log.Debug("%v", linkAttrs)
-		Log.Info("%02d: %2s%15s (%s) %s", linkAttrs.Index, online, linkName, link.Type(), ipaddrs)
+		Log.Info("%02d: %2s%15s (%s) %s", link.IfIndex, online, link.Name, link.Type(), ipaddrs)
 	}
 
 	return nil

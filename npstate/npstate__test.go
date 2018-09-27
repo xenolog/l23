@@ -9,7 +9,7 @@ import (
 func RuntimeNpStatuses() *TopologyState {
 	var linkName string
 	rv := &TopologyState{
-		Link: make(map[string]*NPState),
+		NP: make(map[string]*NPState),
 	}
 
 	linkName = "lo"
@@ -37,7 +37,7 @@ func RuntimeNpStatuses() *TopologyState {
 func RuntimeNpStatusesForRemove() *TopologyState {
 	var linkName string
 	rv := &TopologyState{
-		Link: make(map[string]*NPState),
+		NP: make(map[string]*NPState),
 	}
 
 	linkName = "lo"
