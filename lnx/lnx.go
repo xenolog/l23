@@ -1,6 +1,8 @@
 package lnx
 
 import (
+	"net"
+
 	"github.com/vishvananda/netlink"
 	logger "github.com/xenolog/go-tiny-logger"
 	npstate "github.com/xenolog/l23/npstate"
@@ -16,9 +18,9 @@ const (
 var LnxRtPluginEntryPoint *LnxRtPlugin
 
 type LnxRtPlugin struct {
-	log    *logger.Logger
-	handle *netlink.Handle
-	nps    *npstate.TopologyState
+	log      *logger.Logger
+	handle   *netlink.Handle
+	topology *npstate.TopologyState
 }
 
 // -----------------------------------------------------------------------------
@@ -340,12 +342,6 @@ func NewBridge() NpOperator {
 }
 
 // -----------------------------------------------------------------------------
-
-// func NewIPv4() NpOperator {
-// 	rv := new(NewIPv4)
-// 	return rv
-// }
-
 // -----------------------------------------------------------------------------
 
 func (s *LnxRtPlugin) Init(log *logger.Logger, hh *netlink.Handle) (err error) {
@@ -376,17 +372,79 @@ func (s *LnxRtPlugin) Version() string {
 	return "LNX RUNTIME PLUGIN: v0.0.1"
 }
 
-func (s *LnxRtPlugin) Observe() error {
-	s.nps = npstate.NewTopologyState()
-	return s.nps.ObserveRuntime()
+// Setup netlink handler if need.
+// if nil given -- netlink handler will be created automatically
+func (s *LnxRtPlugin) setHandle(hh *netlink.Handle) (err error) {
+	if s.handle == nil && hh == nil {
+		// generate new handle if need
+		if s.handle, err = netlink.NewHandle(); err != nil {
+			s.log.Error("%v", err)
+		}
+	} else if hh != nil {
+		// setup handle
+		s.handle = hh
+	}
+	return
 }
 
-func (s *LnxRtPlugin) NetworkState() *npstate.TopologyState {
-	return s.nps
+func (s *LnxRtPlugin) Observe() error {
+	s.topology = npstate.NewTopologyState()
+
+	var (
+		linkList []netlink.Link
+		err      error
+		attrs    *netlink.LinkAttrs
+	)
+
+	s.log.Info("%s: Gathering current network topology", MsgPrefix)
+
+	s.setHandle(nil)
+
+	s.log.Debug("%s: Fetching LinkList from netlink.", MsgPrefix)
+	if linkList, err = s.handle.LinkList(); err != nil {
+		s.log.Error("%v", err)
+		return err
+	}
+
+	for _, link := range linkList {
+		attrs = link.Attrs()
+		linkName := attrs.Name
+		s.log.Debug("%s: Processing link '%s'", MsgPrefix, linkName)
+		s.topology.NP[linkName] = &npstate.NPState{
+			Name:     attrs.Name,
+			IfIndex:  attrs.Index,
+			LinkType: link.Type(),
+		}
+		if attrs.Flags&net.FlagUp != 0 {
+			s.topology.NP[linkName].Online = true
+		}
+		// s.fillL2stateByNetlinkLink()
+		s.topology.NP[linkName].L2 = npstate.L2State{
+			// bridge, vlan, bond information should be catched here
+			Mtu: attrs.MTU,
+		}
+
+		if ipaddrs, err := s.handle.AddrList(link, netlink.FAMILY_V4); err == nil {
+			// s.topology.NP[linkName].FillByNetlinkAddrList(&ipaddrInfo)
+			s.topology.NP[linkName].L3.IPv4 = make([]string, len(ipaddrs))
+			for _, addr := range ipaddrs {
+				s.topology.NP[linkName].L3.IPv4 = append(s.topology.NP[linkName].L3.IPv4, addr.IPNet.String())
+			}
+
+		} else {
+			s.log.Error("Error while fetch L3 info for '%s' %v", linkName, err)
+		}
+	}
+	s.log.Debug("%s: gathering done.", MsgPrefix)
+	return nil
+}
+
+func (s *LnxRtPlugin) Topology() *npstate.TopologyState {
+	return s.topology
 }
 
 func (s *LnxRtPlugin) GetNp(name string) *npstate.NPState {
-	rv, ok := s.nps.NP[name]
+	rv, ok := s.topology.NP[name]
 	if !ok {
 		s.log.Error("Network primitive '%s' not found in the stored base", name)
 		return nil
@@ -402,7 +460,7 @@ func (s *LnxRtPlugin) GetHandle() *netlink.Handle {
 	return s.handle
 }
 
-func NewLnxRtPlugin() *LnxRtPlugin {
+func NewLnxRtPlugin() RtPlugin {
 	rv := new(LnxRtPlugin)
 	return rv
 }

@@ -32,7 +32,7 @@ func TestLNX__OperatorList(t *testing.T) {
 func RuntimeNpStatuses__1__exists() *TopologyState {
 	var linkName string
 	rv := &TopologyState{
-		Link:  make(map[string]*NPState),
+		NP:    make(map[string]*NPState),
 		Order: []string{},
 	}
 
@@ -83,7 +83,7 @@ func RuntimeNpStatuses__1__exists() *TopologyState {
 func RuntimeNpStatuses__1__wanted() *TopologyState {
 	var linkName string
 	rv := &TopologyState{
-		Link:  make(map[string]*NPState),
+		NP:    make(map[string]*NPState),
 		Order: []string{},
 	}
 

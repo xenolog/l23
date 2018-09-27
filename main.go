@@ -122,14 +122,14 @@ func RunNetConfig(c *cli.Context) (err error) {
 	wantedNetState := ns.TopologyState()
 	Log.Debug("NetworkScheme processed")
 
-	// initialize and cinfigure LnxRtPlugin
+	// initialize and configure LnxRtPlugin
 	lnxRtPlugin := lnx.NewLnxRtPlugin()
 	lnxRtPlugin.Init(Log, nil)
 	lnxRtPlugin.Observe()
 	Log.Debug("LnxRtPlugin initialized")
 
 	// generate diff betwen current and wanted network topology
-	diffNetState := lnxRtPlugin.NetworkState().Compare(wantedNetState)
+	diffNetState := lnxRtPlugin.Topology().Compare(wantedNetState)
 	Log.Debug("NetworkState DIFF ready: \n%v", diffNetState)
 
 	NSoperators := lnxRtPlugin.Operators()
