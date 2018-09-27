@@ -3,7 +3,7 @@ package lnx
 import (
 	"github.com/vishvananda/netlink"
 	logger "github.com/xenolog/go-tiny-logger"
-	ifstatus "github.com/xenolog/l23/ifstatus"
+	npstate "github.com/xenolog/l23/npstate"
 	. "github.com/xenolog/l23/plugin"
 	. "github.com/xenolog/l23/utils"
 	yaml "gopkg.in/yaml.v2"
@@ -18,7 +18,7 @@ var LnxRtPluginEntryPoint *LnxRtPlugin
 type LnxRtPlugin struct {
 	log    *logger.Logger
 	handle *netlink.Handle
-	nps    *ifstatus.NpsStatus
+	nps    *npstate.TopologyState
 }
 
 // -----------------------------------------------------------------------------
@@ -27,11 +27,11 @@ type OpBase struct {
 	plugin      *LnxRtPlugin
 	log         *logger.Logger
 	handle      *netlink.Handle
-	wantedState *ifstatus.NpLinkStatus
-	rtState     *ifstatus.NpLinkStatus
+	wantedState *npstate.NPState
+	rtState     *npstate.NPState
 }
 
-func (s *OpBase) Init(wantedState *ifstatus.NpLinkStatus) error {
+func (s *OpBase) Init(wantedState *npstate.NPState) error {
 	s.wantedState = wantedState
 	s.rtState = nil
 	return nil
@@ -377,16 +377,16 @@ func (s *LnxRtPlugin) Version() string {
 }
 
 func (s *LnxRtPlugin) Observe() error {
-	s.nps = ifstatus.NewNpsStatus()
+	s.nps = npstate.NewTopologyState()
 	return s.nps.ObserveRuntime()
 }
 
-func (s *LnxRtPlugin) NetworkState() *ifstatus.NpsStatus {
+func (s *LnxRtPlugin) NetworkState() *npstate.TopologyState {
 	return s.nps
 }
 
-func (s *LnxRtPlugin) GetNp(name string) *ifstatus.NpLinkStatus {
-	rv, ok := s.nps.Link[name]
+func (s *LnxRtPlugin) GetNp(name string) *npstate.NPState {
+	rv, ok := s.nps.NP[name]
 	if !ok {
 		s.log.Error("Network primitive '%s' not found in the stored base", name)
 		return nil

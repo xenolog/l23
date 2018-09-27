@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	logger "github.com/xenolog/go-tiny-logger"
-	. "github.com/xenolog/l23/ifstatus"
+	. "github.com/xenolog/l23/npstate"
 	. "github.com/xenolog/l23/plugin"
 	. "github.com/xenolog/l23/utils"
 )
@@ -29,100 +29,100 @@ func TestLNX__OperatorList(t *testing.T) {
 
 // -----------------------------------------------------------------------------
 
-func RuntimeNpStatuses__1__exists() *NpsStatus {
+func RuntimeNpStatuses__1__exists() *TopologyState {
 	var linkName string
-	rv := &NpsStatus{
-		Link:  make(map[string]*NpLinkStatus),
+	rv := &TopologyState{
+		Link:  make(map[string]*NPState),
 		Order: []string{},
 	}
 
 	linkName = "lo"
-	rv.Link[linkName] = &NpLinkStatus{
+	rv.NP[linkName] = &NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
-		L3: L3Status{
+		L3: L3State{
 			IPv4: []string{"127.0.0.1/8"},
 		},
 	}
 
 	linkName = "eth0"
-	rv.Link[linkName] = &NpLinkStatus{
+	rv.NP[linkName] = &NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
-		L3: L3Status{
+		L3: L3State{
 			IPv4: []string{"10.10.10.222/24"},
 		},
 	}
 
 	linkName = "eth1"
-	rv.Link[linkName] = &NpLinkStatus{
+	rv.NP[linkName] = &NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
-		L3: L3Status{
+		L3: L3State{
 			IPv4: []string{"10.20.30.40/24"},
 		},
 	}
 
 	linkName = "eth1.222"
-	rv.Link[linkName] = &NpLinkStatus{
+	rv.NP[linkName] = &NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
 	}
 
-	for _, key := range reflect.ValueOf(rv.Link).MapKeys() {
+	for _, key := range reflect.ValueOf(rv.NP).MapKeys() {
 		rv.Order = append(rv.Order, key.String())
 	}
 	sort.Strings(rv.Order)
 	return rv
 }
 
-func RuntimeNpStatuses__1__wanted() *NpsStatus {
+func RuntimeNpStatuses__1__wanted() *TopologyState {
 	var linkName string
-	rv := &NpsStatus{
-		Link:  make(map[string]*NpLinkStatus),
+	rv := &TopologyState{
+		Link:  make(map[string]*NPState),
 		Order: []string{},
 	}
 
 	linkName = "lo"
-	rv.Link[linkName] = &NpLinkStatus{
+	rv.NP[linkName] = &NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
-		L3: L3Status{
+		L3: L3State{
 			IPv4: []string{"127.0.0.1/8"},
 		},
 	}
 
 	linkName = "eth0"
-	rv.Link[linkName] = &NpLinkStatus{
+	rv.NP[linkName] = &NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
-		L3: L3Status{
+		L3: L3State{
 			IPv4: []string{"10.10.10.1/24"},
 		},
 	}
 
 	linkName = "eth1"
-	rv.Link[linkName] = &NpLinkStatus{
+	rv.NP[linkName] = &NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
-		L3: L3Status{
+		L3: L3State{
 			IPv4: []string{"10.20.30.40/24", "20.30.40.50/25"},
 		},
 	}
 
 	linkName = "eth1.101"
-	rv.Link[linkName] = &NpLinkStatus{
+	rv.NP[linkName] = &NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
-		L2: L2Status{
+		L2: L2State{
 			Bridge:  "br4",
 			Parent:  "eth1",
 			Vlan_id: 101,
@@ -130,15 +130,15 @@ func RuntimeNpStatuses__1__wanted() *NpsStatus {
 	}
 
 	linkName = "br4"
-	rv.Link[linkName] = &NpLinkStatus{
+	rv.NP[linkName] = &NPState{
 		Name:   linkName,
 		Action: "bridge",
 		Online: true,
-		L3: L3Status{
+		L3: L3State{
 			IPv4: []string{"10.40.40.1/24"},
 		},
 	}
-	for _, key := range reflect.ValueOf(rv.Link).MapKeys() {
+	for _, key := range reflect.ValueOf(rv.NP).MapKeys() {
 		rv.Order = append(rv.Order, key.String())
 	}
 	sort.Strings(rv.Order)
@@ -162,14 +162,14 @@ func TestLNX__1__MainRun(t *testing.T) {
 	npModifyed := []string{}
 	// walk ordr and implement diffs
 	for _, npName := range wantedNps.Order {
-		action, ok := operators[wantedNps.Link[npName].Action]
+		action, ok := operators[wantedNps.NP[npName].Action]
 		if !ok {
 			t.Logf("Unsupported actiom '%s' for '%s', skipped", action, npName)
 			t.Fail()
 			continue
 		}
 		oper := action.(func() NpOperator)()
-		oper.Init(wantedNps.Link[npName])
+		oper.Init(wantedNps.NP[npName])
 
 		t.Logf(npName)
 		if IndexString(diff.Waste, npName) >= 0 {

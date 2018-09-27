@@ -6,7 +6,7 @@ import (
 
 	cli "github.com/urfave/cli"
 	"github.com/vishvananda/netlink"
-	ifstatus "github.com/xenolog/l23/ifstatus"
+	npstate "github.com/xenolog/l23/npstate"
 )
 
 func UtilityListNetworkPrimitivesOld(c *cli.Context) error {
@@ -54,10 +54,10 @@ func UtilityListNetworkPrimitives(c *cli.Context) error {
 		online   string
 	)
 
-	nps := ifstatus.NewNpsStatus()
+	nps := npstate.NewTopologyState()
 	nps.ObserveRuntime()
 
-	for _, link := range nps.Link {
+	for _, link := range nps.NP {
 		linkAttrs := link.Attrs()
 		if linkAttrs.Alias == "" {
 			linkName = link.Name

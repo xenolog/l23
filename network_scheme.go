@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"sort"
 
-	ifstatus "github.com/xenolog/l23/ifstatus"
+	npstate "github.com/xenolog/l23/npstate"
 
 	. "github.com/xenolog/l23/utils"
 	yaml "gopkg.in/yaml.v2"
@@ -75,10 +75,10 @@ func (s *NetworkScheme) Load(r io.Reader) (err error) {
 	return
 }
 
-func (s *NetworkScheme) NpsStatus() *ifstatus.NpsStatus {
+func (s *NetworkScheme) TopologyState() *npstate.TopologyState {
 
-	rv := &ifstatus.NpsStatus{
-		Link:            make(map[string]*ifstatus.NpLinkStatus),
+	rv := &npstate.TopologyState{
+		NP:              make(map[string]*npstate.NPState),
 		Order:           []string{},
 		DefaultProvider: "lnx",
 	}
@@ -94,19 +94,19 @@ func (s *NetworkScheme) NpsStatus() *ifstatus.NpsStatus {
 	}
 	sort.Strings(iflist)
 	for _, key := range iflist {
-		if _, ok := rv.Link[key]; !ok {
-			rv.Link[key] = new(ifstatus.NpLinkStatus)
-			rv.Link[key].Name = key
-			rv.Link[key].Online = true
+		if _, ok := rv.NP[key]; !ok {
+			rv.NP[key] = new(npstate.NPState)
+			rv.NP[key].Name = key
+			rv.NP[key].Online = true
 			rv.Order = append(rv.Order, key)
 		}
-		rv.Link[key].Action = "port"
+		rv.NP[key].Action = "port"
 		//todo(sv): call corresponded interface for resource
-		rv.Link[key].L2.Mtu = s.Interfaces[key].Mtu
+		rv.NP[key].L2.Mtu = s.Interfaces[key].Mtu
 		if s.Interfaces[key].Provider != "" {
-			rv.Link[key].Provider = s.Interfaces[key].Provider
+			rv.NP[key].Provider = s.Interfaces[key].Provider
 		} else {
-			rv.Link[key].Provider = rv.DefaultProvider
+			rv.NP[key].Provider = rv.DefaultProvider
 		}
 	}
 
@@ -115,26 +115,26 @@ func (s *NetworkScheme) NpsStatus() *ifstatus.NpsStatus {
 		if IndexString(rv.Order, tr.Name) < 0 {
 			rv.Order = append(rv.Order, tr.Name)
 		}
-		if _, ok := rv.Link[tr.Name]; !ok {
-			rv.Link[tr.Name] = new(ifstatus.NpLinkStatus)
-			rv.Link[tr.Name].Name = tr.Name
-			rv.Link[tr.Name].Online = true
+		if _, ok := rv.NP[tr.Name]; !ok {
+			rv.NP[tr.Name] = new(npstate.NPState)
+			rv.NP[tr.Name].Name = tr.Name
+			rv.NP[tr.Name].Online = true
 		}
 		if tr.Action != "" {
-			rv.Link[tr.Name].Action = tr.Action
+			rv.NP[tr.Name].Action = tr.Action
 		}
 		//todo(sv): call corresponded interface for resource
-		rv.Link[tr.Name].L2.Mtu = tr.Mtu
-		rv.Link[tr.Name].L2.Bridge = tr.Bridge
-		rv.Link[tr.Name].L2.Parent = tr.Parent
-		rv.Link[tr.Name].L2.Slaves = tr.Slaves
-		rv.Link[tr.Name].L2.Vlan_id = tr.Vlan_id
-		rv.Link[tr.Name].L2.Stp = tr.Stp
-		rv.Link[tr.Name].L2.Bpdu_forward = tr.Bpdu_forward
+		rv.NP[tr.Name].L2.Mtu = tr.Mtu
+		rv.NP[tr.Name].L2.Bridge = tr.Bridge
+		rv.NP[tr.Name].L2.Parent = tr.Parent
+		rv.NP[tr.Name].L2.Slaves = tr.Slaves
+		rv.NP[tr.Name].L2.Vlan_id = tr.Vlan_id
+		rv.NP[tr.Name].L2.Stp = tr.Stp
+		rv.NP[tr.Name].L2.Bpdu_forward = tr.Bpdu_forward
 		if tr.Provider != "" {
-			rv.Link[tr.Name].Provider = tr.Provider
-		} else if rv.Link[tr.Name].Provider == "" {
-			rv.Link[tr.Name].Provider = rv.DefaultProvider
+			rv.NP[tr.Name].Provider = tr.Provider
+		} else if rv.NP[tr.Name].Provider == "" {
+			rv.NP[tr.Name].Provider = rv.DefaultProvider
 		}
 	}
 
@@ -144,14 +144,14 @@ func (s *NetworkScheme) NpsStatus() *ifstatus.NpsStatus {
 			log.Printf("Endpoint '%s' is not an interface or network primitive created by transformation", key)
 			continue
 		}
-		if _, ok := rv.Link[key]; !ok {
-			rv.Link[key] = new(ifstatus.NpLinkStatus)
-			rv.Link[key].Name = key
-			rv.Link[key].Online = true
+		if _, ok := rv.NP[key]; !ok {
+			rv.NP[key] = new(npstate.NPState)
+			rv.NP[key].Name = key
+			rv.NP[key].Online = true
 		}
 		if len(endpoint.IP) > 0 && endpoint.IP[0] != "none" {
-			rv.Link[key].L3.IPv4 = make([]string, len(endpoint.IP))
-			copy(rv.Link[key].L3.IPv4, endpoint.IP)
+			rv.NP[key].L3.IPv4 = make([]string, len(endpoint.IP))
+			copy(rv.NP[key].L3.IPv4, endpoint.IP)
 		}
 	}
 

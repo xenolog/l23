@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	ifstatus "github.com/xenolog/l23/ifstatus"
+	npstate "github.com/xenolog/l23/npstate"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -33,42 +33,42 @@ aaa: bbb
 `
 }
 
-func NpsStatus_1() *ifstatus.NpsStatus {
+func TopologyState_1() *npstate.TopologyState {
 	var linkName string
-	rv := &ifstatus.NpsStatus{
-		Link: make(map[string]*ifstatus.NpLinkStatus),
+	rv := &npstate.TopologyState{
+		NP: make(map[string]*npstate.NPState),
 	}
 
 	linkName = "eth0"
-	rv.Link[linkName] = &ifstatus.NpLinkStatus{
+	rv.NP[linkName] = &npstate.NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
-		L2: ifstatus.L2Status{
+		L2: npstate.L2State{
 			Mtu: 2048,
 		},
-		L3: ifstatus.L3Status{
+		L3: npstate.L3State{
 			IPv4: []string{"10.1.3.11/24", "10.20.30.40/24"},
 		},
 		Provider: "lnx",
 	}
 
 	linkName = "eth1"
-	rv.Link[linkName] = &ifstatus.NpLinkStatus{
+	rv.NP[linkName] = &npstate.NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
-		L2: ifstatus.L2Status{
+		L2: npstate.L2State{
 			Mtu: 999,
 		},
-		L3: ifstatus.L3Status{
+		L3: npstate.L3State{
 			IPv4: nil,
 		},
 		Provider: "lnx",
 	}
 
 	linkName = "eth2"
-	rv.Link[linkName] = &ifstatus.NpLinkStatus{
+	rv.NP[linkName] = &npstate.NPState{
 		Name:     linkName,
 		Action:   "port",
 		Online:   true,
@@ -113,42 +113,42 @@ aaa: bbb
 `
 }
 
-func NpsStatus_2() *ifstatus.NpsStatus {
+func TopologyState_2() *npstate.TopologyState {
 	var linkName string
-	rv := &ifstatus.NpsStatus{
-		Link: make(map[string]*ifstatus.NpLinkStatus),
+	rv := &npstate.TopologyState{
+		NP: make(map[string]*npstate.NPState),
 	}
 
 	linkName = "eth0"
-	rv.Link[linkName] = &ifstatus.NpLinkStatus{
+	rv.NP[linkName] = &npstate.NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
-		L2: ifstatus.L2Status{
+		L2: npstate.L2State{
 			Mtu: 9000,
 		},
-		L3: ifstatus.L3Status{
+		L3: npstate.L3State{
 			IPv4: []string{"10.1.3.11/24", "10.20.30.40/24"},
 		},
 		Provider: "lnx",
 	}
 
 	linkName = "eth1"
-	rv.Link[linkName] = &ifstatus.NpLinkStatus{
+	rv.NP[linkName] = &npstate.NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
-		L2: ifstatus.L2Status{
+		L2: npstate.L2State{
 			Mtu: 2048,
 		},
-		L3: ifstatus.L3Status{
+		L3: npstate.L3State{
 			IPv4: nil,
 		},
 		Provider: "lnx",
 	}
 
 	linkName = "eth2"
-	rv.Link[linkName] = &ifstatus.NpLinkStatus{
+	rv.NP[linkName] = &npstate.NPState{
 		Name:     linkName,
 		Action:   "port",
 		Online:   true,
@@ -192,19 +192,19 @@ func TestNS__Values(t *testing.T) {
 
 // -----------------------------------------------------------------------------
 
-func TestNS__GenerateNpsStatus(t *testing.T) {
+func TestNS__GenerateTopologyState(t *testing.T) {
 	ns := new(NetworkScheme)
 	ns_yaml := strings.NewReader(NetworkScheme_1())
 	if err := ns.Load(ns_yaml); err != nil {
 		t.FailNow()
 	}
-	nps := ns.NpsStatus()
+	nps := ns.TopologyState()
 	ifOrder := []string{"eth0", "eth1", "eth2"}
 	if !reflect.DeepEqual(nps.Order, ifOrder) {
 		t.Logf("Wrong ordering: %v, instead %v", nps.Order, ifOrder)
 		t.Fail()
 	}
-	wantedNps := NpsStatus_1()
+	wantedNps := TopologyState_1()
 	diff := nps.Compare(wantedNps)
 	if !diff.IsEqual() {
 		t.Logf("Incoming NetworkScheme: %v", NetworkScheme_1())
@@ -238,7 +238,7 @@ interfaces:
 	if err := ns.Load(ns_data); err != nil {
 		t.FailNow()
 	}
-	nps := ns.NpsStatus()
+	nps := ns.TopologyState()
 	if nps.DefaultProvider != "lnx" {
 		t.Logf("Wrong default provider: %v, instead %v", nps.DefaultProvider, "lnx")
 		t.Fail()
@@ -256,7 +256,7 @@ interfaces:
 	if err := ns.Load(ns_data); err != nil {
 		t.FailNow()
 	}
-	nps := ns.NpsStatus()
+	nps := ns.TopologyState()
 	if nps.DefaultProvider != "ovs" {
 		t.Logf("Wrong default provider: %v, instead %v", nps.DefaultProvider, "lnx")
 		t.Fail()
@@ -290,7 +290,7 @@ transformations:
 	if err := ns.Load(ns_data); err != nil {
 		t.FailNow()
 	}
-	nps := ns.NpsStatus()
+	nps := ns.TopologyState()
 	for _, m := range [][]string{
 		{"eth0", "aaa"}, // provider defined into interfaces section
 		{"eth1", "bbb"}, // provider defined into interfaces section and re-defined into transformations
@@ -298,8 +298,8 @@ transformations:
 		{"eth3", "ddd"}, // provider defined into interfaces section and does not touched into transformations
 		{"eth4", "ovs"}, // Default Provider used
 	} {
-		if nps.Link[m[0]].Provider != m[1] {
-			t.Logf("Wrong provider for %s: %v, instead %v", m[0], nps.Link[m[0]].Provider, m[1])
+		if nps.NP[m[0]].Provider != m[1] {
+			t.Logf("Wrong provider for %s: %v, instead %v", m[0], nps.NP[m[0]].Provider, m[1])
 			t.Fail()
 		}
 	}
@@ -312,8 +312,8 @@ func TestNS__TransformationsValues(t *testing.T) {
 	if err := ns.Load(ns_data); err != nil {
 		t.FailNow()
 	}
-	nps := ns.NpsStatus()
-	wantedNps := NpsStatus_2()
+	nps := ns.TopologyState()
+	wantedNps := TopologyState_2()
 	diff := nps.Compare(wantedNps)
 	if !diff.IsEqual() {
 		t.Logf("Incoming NetworkScheme: %v", ns_yaml)
@@ -343,7 +343,7 @@ transformations:
 	if err := ns.Load(ns_data); err != nil {
 		t.FailNow()
 	}
-	nps := ns.NpsStatus()
+	nps := ns.TopologyState()
 	//todo(sv): True order should be
 	//wantedOrder := []string{"eth0", "eth0.101", "eth1"}
 	// because eth1 found in the transformations list
@@ -377,43 +377,43 @@ transformations:
 	if err := ns.Load(ns_data); err != nil {
 		t.FailNow()
 	}
-	nps := ns.NpsStatus()
+	nps := ns.TopologyState()
 	//todo(sv): True order should be
 
-	if nps.Link["xxx"].Name != "xxx" {
+	if nps.NP["xxx"].Name != "xxx" {
 		t.Logf("Field 'Name' not present or invalid")
 		t.Fail()
 	}
-	if nps.Link["xxx"].Action != "fuck" {
+	if nps.NP["xxx"].Action != "fuck" {
 		t.Logf("Field 'Action' not present or invalid")
 		t.Fail()
 	}
-	if nps.Link["xxx"].L2.Mtu != 9000 {
+	if nps.NP["xxx"].L2.Mtu != 9000 {
 		t.Logf("Field 'Mtu' not present or invalid")
 		t.Fail()
 	}
-	if nps.Link["xxx"].L2.Bridge != "aaa" {
+	if nps.NP["xxx"].L2.Bridge != "aaa" {
 		t.Logf("Field 'Bridge' not present or invalid")
 		t.Fail()
 	}
-	if nps.Link["xxx"].L2.Parent != "eth0" {
+	if nps.NP["xxx"].L2.Parent != "eth0" {
 		t.Logf("Field 'Parent' not present or invalid")
 		t.Fail()
 	}
-	if !reflect.DeepEqual(nps.Link["xxx"].L2.Slaves, []string{"x1", "x2"}) {
+	if !reflect.DeepEqual(nps.NP["xxx"].L2.Slaves, []string{"x1", "x2"}) {
 		t.Logf("Field 'Slaves' not present or invalid")
 		t.Fail()
 	}
-	if !nps.Link["xxx"].L2.Bpdu_forward {
+	if !nps.NP["xxx"].L2.Bpdu_forward {
 		t.Logf("Field 'Bpdu_forward' not present or invalid")
 		t.Fail()
 	}
-	if !nps.Link["xxx"].L2.Stp {
+	if !nps.NP["xxx"].L2.Stp {
 		t.Logf("Field 'Stp' not present or invalid")
 		t.Fail()
 	}
 	if t.Failed() {
-		txt, _ := yaml.Marshal(nps.Link["xxx"])
+		txt, _ := yaml.Marshal(nps.NP["xxx"])
 		t.Logf(string(txt))
 	}
 }

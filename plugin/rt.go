@@ -3,20 +3,20 @@ package plugin
 import (
 	"github.com/vishvananda/netlink"
 	logger "github.com/xenolog/go-tiny-logger"
-	ifstatus "github.com/xenolog/l23/ifstatus"
+	npstate "github.com/xenolog/l23/npstate"
 )
 
 // -----------------------------------------------------------------------------
 
 type NpOperator interface {
-	Init(*ifstatus.NpLinkStatus) error
+	Init(*npstate.NPState) error
 	Create(bool) error
 	Remove(bool) error
 	Modify(bool) error
 	Name() string
 	IPv4addrList() []string
-	//todo(sv): State() *NpLinkStatus // move status generation here
-	// Link() netlink.Link	// This two methods are Provider-specific
+	//todo(sv): State() *NPState // move status generation here
+	// Link() netlink.NP	// This two methods are Provider-specific
 	// IfIndex() int		// IMHO it is a big cons to intlude to interface
 }
 
@@ -27,9 +27,9 @@ type RtPlugin interface {
 	Version() string
 	Operators() NpOperators
 	Observe() error // Observe runtime and build NPState
-	NetworkState() *ifstatus.NpsStatus
+	NetworkState() *npstate.TopologyState
 	GetLogger() *logger.Logger
-	// GetNp(string) *ifstatus.NpLinkStatus
+	// GetNp(string) *npstate.NPState
 	// GetHandle() *netlink.Handle
 }
 

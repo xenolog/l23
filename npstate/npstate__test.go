@@ -1,4 +1,4 @@
-package ifstatus
+package npstate
 
 import (
 	"reflect"
@@ -6,69 +6,69 @@ import (
 	// logger "github.com/xenolog/go-tiny-logger"
 )
 
-func RuntimeNpStatuses() *NpsStatus {
+func RuntimeNpStatuses() *TopologyState {
 	var linkName string
-	rv := &NpsStatus{
-		Link: make(map[string]*NpLinkStatus),
+	rv := &TopologyState{
+		Link: make(map[string]*NPState),
 	}
 
 	linkName = "lo"
-	rv.Link[linkName] = &NpLinkStatus{
+	rv.NP[linkName] = &NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
-		L3: L3Status{
+		L3: L3State{
 			IPv4: []string{"127.0.0.1/8"},
 		},
 	}
 
 	linkName = "eth1"
-	rv.Link[linkName] = &NpLinkStatus{
+	rv.NP[linkName] = &NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
-		L3: L3Status{
+		L3: L3State{
 			IPv4: []string{"10.20.30.40/24", "20.30.40.50/25"},
 		},
 	}
 	return rv
 }
 
-func RuntimeNpStatusesForRemove() *NpsStatus {
+func RuntimeNpStatusesForRemove() *TopologyState {
 	var linkName string
-	rv := &NpsStatus{
-		Link: make(map[string]*NpLinkStatus),
+	rv := &TopologyState{
+		Link: make(map[string]*NPState),
 	}
 
 	linkName = "lo"
-	rv.Link[linkName] = &NpLinkStatus{
+	rv.NP[linkName] = &NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
-		L3: L3Status{
+		L3: L3State{
 			IPv4: []string{"127.0.0.1/8"},
 		},
 	}
 
 	linkName = "eth0"
-	rv.Link[linkName] = &NpLinkStatus{
+	rv.NP[linkName] = &NPState{
 		Name:   linkName,
 		Action: "remove",
 	}
 
 	linkName = "eth1"
-	rv.Link[linkName] = &NpLinkStatus{
+	rv.NP[linkName] = &NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
-		L3: L3Status{
+		L3: L3State{
 			IPv4: []string{"10.20.30.40/24", "20.30.40.50/25"},
 		},
 	}
 	return rv
 }
 
-func TestIfStatus__EqualNpStatuses(t *testing.T) {
+func Testnpstate__EqualNpStatuses(t *testing.T) {
 	runtimeNps := RuntimeNpStatuses()
 	wantedNps := RuntimeNpStatuses()
 	diff := runtimeNps.Compare(wantedNps)
@@ -81,11 +81,11 @@ func TestIfStatus__EqualNpStatuses(t *testing.T) {
 	}
 }
 
-func TestIfStatus__ReducedIface(t *testing.T) {
+func Testnpstate__ReducedIface(t *testing.T) {
 	linkName := "eth1"
 	runtimeNps := RuntimeNpStatuses()
 	wantedNps := RuntimeNpStatuses()
-	delete(wantedNps.Link, linkName)
+	delete(wantedNps.NP, linkName)
 
 	diff := runtimeNps.Compare(wantedNps)
 
@@ -99,7 +99,7 @@ func TestIfStatus__ReducedIface(t *testing.T) {
 
 }
 
-func TestIfStatus__ReducedIface__by_remove_action(t *testing.T) {
+func Testnpstate__ReducedIface__by_remove_action(t *testing.T) {
 	linkName := "eth0"
 	runtimeNps := RuntimeNpStatusesForRemove()
 	wantedNps := RuntimeNpStatusesForRemove()
@@ -122,15 +122,15 @@ func TestIfStatus__ReducedIface__by_remove_action(t *testing.T) {
 
 }
 
-func TestIfStatus__AddedIface(t *testing.T) {
+func Testnpstate__AddedIface(t *testing.T) {
 	runtimeNps := RuntimeNpStatuses()
 	wantedNps := RuntimeNpStatuses()
 	linkName := "eth2"
-	wantedNps.Link[linkName] = &NpLinkStatus{
+	wantedNps.NP[linkName] = &NPState{
 		Name:   linkName,
 		Action: "port",
 		Online: true,
-		L3: L3Status{
+		L3: L3State{
 			IPv4: []string{"192.168.0.1/24"},
 		},
 	}
@@ -146,11 +146,11 @@ func TestIfStatus__AddedIface(t *testing.T) {
 	}
 
 }
-func TestIfStatus__DifferentIface(t *testing.T) {
+func Testnpstate__DifferentIface(t *testing.T) {
 	runtimeNps := RuntimeNpStatuses()
 	wantedNps := RuntimeNpStatuses()
 	linkName := "eth1"
-	wantedNps.Link[linkName].L3.IPv4 = []string{"10.20.30.40/24", "20.30.40.55/25"}
+	wantedNps.NP[linkName].L3.IPv4 = []string{"10.20.30.40/24", "20.30.40.55/25"}
 
 	diff := runtimeNps.Compare(wantedNps)
 
