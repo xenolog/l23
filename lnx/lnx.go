@@ -8,6 +8,7 @@ import (
 	npstate "github.com/xenolog/l23/npstate"
 	. "github.com/xenolog/l23/plugin"
 	. "github.com/xenolog/l23/utils"
+	"golang.org/x/sys/unix"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -65,14 +66,13 @@ func (s *OpBase) IfIndex() int {
 		return 0
 	}
 	return link.Attrs().Index
-
 }
 
 // returns address list in the original order
 func (s *OpBase) IPv4addrList() []string {
 
 	rv := []string{}
-	if addrs, err := s.handle.AddrList(s.Link(), netlink.FAMILY_V4); err == nil {
+	if addrs, err := s.handle.AddrList(s.Link(), unix.AF_INET); err == nil { // unix.AF_INET === netlink.FAMILY_V4 , but operable under OSX
 		for _, addr := range addrs {
 			rv = append(rv, addr.IPNet.String())
 		}
@@ -344,7 +344,9 @@ func NewBridge() NpOperator {
 // -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
 
+// Init -- Runtime linux plugin entry point
 func (s *LnxRtPlugin) Init(log *logger.Logger, hh *netlink.Handle) (err error) {
+	s.log = log
 	if s.handle == nil && hh == nil {
 		// generate new handle if need
 		if s.handle, err = netlink.NewHandle(); err != nil {
@@ -355,7 +357,6 @@ func (s *LnxRtPlugin) Init(log *logger.Logger, hh *netlink.Handle) (err error) {
 		// setup handle
 		s.handle = hh
 	}
-	s.log = log
 	LnxRtPluginEntryPoint = s
 	return nil
 }
@@ -424,7 +425,7 @@ func (s *LnxRtPlugin) Observe() error {
 			Mtu: attrs.MTU,
 		}
 
-		if ipaddrs, err := s.handle.AddrList(link, netlink.FAMILY_V4); err == nil {
+		if ipaddrs, err := s.handle.AddrList(link, unix.AF_INET); err == nil { // unix.AF_INET === netlink.FAMILY_V4 , but operable under OSX
 			// s.topology.NP[linkName].FillByNetlinkAddrList(&ipaddrInfo)
 			s.topology.NP[linkName].L3.IPv4 = make([]string, len(ipaddrs))
 			for _, addr := range ipaddrs {

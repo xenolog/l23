@@ -1,0 +1,21 @@
+---
+- name: Install Docker-related packages
+  block:
+  - package:
+      name: "{{ packages }}"
+      state: latest
+    vars:
+      packages:
+        - docker.io
+        - python3-docker
+        # - iperf3
+- name: Install docker Go-lang image to master node
+  docker_image:
+    name: golang:1.12-stretch
+
+- name: Compile L23 binary
+  block:
+    - shell: git pull
+      args:
+        chdir: /root/go/l23
+    - shell: docker run --rm -it -v "/root/go:/go" -w "/go/l23/" golang:1.12-stretch go build

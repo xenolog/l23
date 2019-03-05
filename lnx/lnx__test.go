@@ -168,6 +168,7 @@ func TestLNX__1__MainRun(t *testing.T) {
 			t.Fail()
 			continue
 		}
+		t.Logf("action: %s", action)
 		oper := action.(func() NpOperator)()
 		oper.Init(wantedNps.NP[npName])
 

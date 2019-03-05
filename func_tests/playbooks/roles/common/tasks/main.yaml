@@ -1,0 +1,34 @@
+---
+- name: Setup ssh keys
+  block:
+  # - file: path=/root/.ssh state=absent
+  - file: path=/root/.ssh state=directory mode=755
+  - copy: dest=/root/.ssh/config content='Host 10.*\n\tStrictHostKeyChecking no\n\tUserKnownHostsFile=/dev/null' mode=644
+  # - copy: src=../tmp/ssh/{{item.name}} dest=/root/.ssh/ mode={{item.mode}}
+  #   with_items:
+  #     - name: authorized_keys
+  #       mode: 644
+  #     - name: id_rsa
+  #       mode: 600
+  #     - name: id_rsa.pub
+  #       mode: 644
+
+- name: update package base to the last
+  apt:
+    update_cache: yes
+
+- name: Install addition packages
+  block:
+  - package:
+      name: "{{ packages }}"
+      state: present
+    vars:
+      packages:
+        - traceroute
+        - tcpdump
+        - ethtool
+        # - curl
+        # - telnet
+        # - vim
+        # - iperf3
+        # - nmap
