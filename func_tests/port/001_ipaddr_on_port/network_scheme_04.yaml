@@ -11,4 +11,4 @@ transformations:
 endpoints:
   eth1:
     IP:
-      - '10.1.251.100/25'
+      - '10.1.151.100/25'

@@ -102,12 +102,16 @@ func (s *OpBase) allignIPv4list() {
 		}
 	}
 
+	s.log.Debug("%s %s: IPv4 addresses found: %s", MsgPrefix, s.Name(), runtimeIPs)
+	s.log.Debug("%s %s: IPv4 addresses to add: %s", MsgPrefix, s.Name(), toAdd)
+	s.log.Debug("%s %s: IPv4 addresses to remove: %s", MsgPrefix, s.Name(), toRemove)
+
 	// add required IPs
 	for _, addr := range toAdd {
-		s.log.Debug("%s Adding IPv4 addr '%s' to interface '%s'", MsgPrefix, addr, s.Name())
+		s.log.Debug("%s %s: Adding IPv4 addr '%s'", MsgPrefix, s.Name(), addr)
 		if a, err := netlink.ParseAddr(addr); err == nil {
 			if err := s.handle.AddrAdd(s.Link(), a); err != nil {
-				s.log.Error("%s Can't add IPv4 addr '%s' to interface '%s': %v", MsgPrefix, addr, s.Name(), err)
+				s.log.Error("%s %sCan't add IPv4 addr '%s': %v", MsgPrefix, s.Name(), addr, err)
 			}
 		} else {
 			s.log.Error("%s Can't parse IPv4 addr '%s' while addition: %v", MsgPrefix, addr, err)
@@ -116,10 +120,10 @@ func (s *OpBase) allignIPv4list() {
 
 	// remove unwanted IPs
 	for _, addr := range toRemove {
-		s.log.Debug("%s Removing IPv4 addr '%s' on interface '%s'", MsgPrefix, addr, s.Name())
+		s.log.Debug("%s %s Removing IPv4 addr '%s'", MsgPrefix, s.Name(), addr)
 		if a, err := netlink.ParseAddr(addr); err == nil {
 			if err := s.handle.AddrDel(s.Link(), a); err != nil {
-				s.log.Error("%s Can't remove IPv4 addr '%s' on interface '%s': %v", MsgPrefix, addr, s.Name(), err)
+				s.log.Error("%s %s Can't remove IPv4 addr '%s': %v", MsgPrefix, s.Name(), addr, err)
 			}
 		} else {
 			s.log.Error("%s Can't parse IPv4 addr '%s' while addition: %v", MsgPrefix, addr, err)
