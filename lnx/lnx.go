@@ -157,18 +157,18 @@ func (s *L2Port) Create(dryrun bool) error {
 
 	if s.wantedState.L2.Parent != "" && s.wantedState.L2.Vlan_id > 0 {
 		// vlan over parent
-		parent_id := 0
+		parentID := 0
 		if parent, err := netlink.LinkByName(s.wantedState.L2.Parent); err != nil {
 			s.log.Error("%s Can't find interface '%s' as parent for '%s': %v", MsgPrefix, s.wantedState.L2.Parent, s.Name(), err)
 			return err
 		} else {
-			parent_id = parent.Attrs().Index
+			parentID = parent.Attrs().Index
 		}
 		vlan := netlink.Vlan{
 			VlanId: s.wantedState.L2.Vlan_id,
 		}
 		vlan.Name = s.Name()
-		vlan.ParentIndex = parent_id
+		vlan.ParentIndex = parentID
 		if err := s.handle.LinkAdd(&vlan); err != nil {
 			s.log.Error("%s Can't create vlan '%s': %v", MsgPrefix, s.Name(), err)
 			return err
