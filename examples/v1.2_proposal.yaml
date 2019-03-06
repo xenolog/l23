@@ -11,7 +11,7 @@ transformations:
     action: bridge
   - name: br2
     action: bridge
-    bridge_properties:
+    vndor_specific:
       - stp: false
   - name: eth0.101
     action: port
