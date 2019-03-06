@@ -87,30 +87,8 @@ func (s *NetworkScheme) TopologyState() *npstate.TopologyState {
 		rv.DefaultProvider = s.Provider
 	}
 
-	// sort by interface name is required by design !!!
-	iflist := []string{}
-	for _, key := range reflect.ValueOf(s.Interfaces).MapKeys() {
-		iflist = append(iflist, key.String())
-	}
-	sort.Strings(iflist)
-	for _, key := range iflist {
-		if _, ok := rv.NP[key]; !ok {
-			rv.NP[key] = new(npstate.NPState)
-			rv.NP[key].Name = key
-			rv.NP[key].Online = true
-			rv.Order = append(rv.Order, key)
-		}
-		rv.NP[key].Action = "port"
-		//todo(sv): call corresponded interface for resource
-		rv.NP[key].L2.Mtu = s.Interfaces[key].Mtu
-		if s.Interfaces[key].Provider != "" {
-			rv.NP[key].Provider = s.Interfaces[key].Provider
-		} else {
-			rv.NP[key].Provider = rv.DefaultProvider
-		}
-	}
-
-	// transformations should be processed here
+	// transformations should be processed first. Unlisted interfaces will be
+	// added later
 	for _, tr := range s.Transformations {
 		if IndexString(rv.Order, tr.Name) < 0 {
 			rv.Order = append(rv.Order, tr.Name)
@@ -135,6 +113,34 @@ func (s *NetworkScheme) TopologyState() *npstate.TopologyState {
 			rv.NP[tr.Name].Provider = tr.Provider
 		} else if rv.NP[tr.Name].Provider == "" {
 			rv.NP[tr.Name].Provider = rv.DefaultProvider
+		}
+	}
+
+	// Add unlisted interface names into head of ordering
+	// (required by design !!!)
+	iflist := []string{}
+	for _, key := range reflect.ValueOf(s.Interfaces).MapKeys() {
+		keyName := key.String()
+		if IndexString(rv.Order, keyName) < 0 {
+			iflist = append(iflist, keyName)
+		}
+	}
+	sort.Strings(iflist)
+	iflist = ReverseString(iflist)
+	for _, key := range iflist {
+		if _, ok := rv.NP[key]; !ok {
+			rv.NP[key] = new(npstate.NPState)
+			rv.NP[key].Name = key
+			rv.NP[key].Online = true
+			rv.Order = PrependString(rv.Order, key)
+		}
+		rv.NP[key].Action = "port"
+		//todo(sv): call corresponded interface for resource
+		rv.NP[key].L2.Mtu = s.Interfaces[key].Mtu
+		if s.Interfaces[key].Provider != "" {
+			rv.NP[key].Provider = s.Interfaces[key].Provider
+		} else {
+			rv.NP[key].Provider = rv.DefaultProvider
 		}
 	}
 
