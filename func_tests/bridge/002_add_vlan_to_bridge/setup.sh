@@ -10,8 +10,6 @@ master_ifname=$(echo ${IFNAME} | awk -F'.' '{print $1}')
 ip link set up $master_ifname
 ip addr flush dev $master_ifname
 
-ip addr flush $IFNAME && \
-ip link set down $IFNAME && \
-ip link del $IFNAME
+ip link show type vlan | grep "@${master_ifname}" | awk '{print $2}' | awk -F'@' '{print $1}' | xargs -n1 ip link del
 
 ip link del $BRNAME
