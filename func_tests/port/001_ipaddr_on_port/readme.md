@@ -9,6 +9,7 @@
 
 * test #02:
   * add second IP address to eth1
+  * note! here and below IP addresses (for multi-address cases) should be from different subnets, or secondary addresses should have /32 netmask. This limitation due native linux kernel network stack features found.
 
 * test #03:
   * remove first IP address on eth1
@@ -17,7 +18,7 @@
   * change network mask on the single IP address on eth1
 
 * test #05:
-  * change IP address on eth1
+  * change single IP address on eth1
 
 * test #06:
   * remove single IP address on eth1
