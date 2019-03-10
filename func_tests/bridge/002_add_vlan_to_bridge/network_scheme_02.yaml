@@ -1,0 +1,24 @@
+---
+version: 1.2
+provider: lnx
+#processing: declarative / imperative
+#config-provider: ubuntu16
+interfaces:
+  eth1: {}
+transformations:
+  - name: br1
+    action: bridge
+  - name: eth1.101
+    action: port
+    parent: eth1
+    vlan_id: 101
+    bridge: br1
+endpoints:
+  eth1:
+    IP: []
+  eth1.101:
+    IP: []
+  br1:
+    IP:
+      - '10.1.251.1/24'
+      - '10.1.251.100/32'

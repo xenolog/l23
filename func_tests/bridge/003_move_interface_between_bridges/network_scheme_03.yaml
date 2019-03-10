@@ -1,0 +1,22 @@
+---
+version: 1.2
+provider: lnx
+#processing: declarative / imperative
+#config-provider: ubuntu16
+interfaces:
+  eth1: {}
+transformations:
+  - name: br1
+    action: bridge
+  - name: br2
+    action: bridge
+  - name: eth1
+    action: port
+endpoints:
+  eth1:
+    IP:
+      - '10.1.251.100/32'
+  br1:
+    IP: []
+  br2:
+    IP: []

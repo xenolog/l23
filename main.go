@@ -121,6 +121,7 @@ func RunNetConfig(c *cli.Context) (err error) {
 	// generate wanted network topology
 	wantedNetState := ns.TopologyState()
 	Log.Debug("NetworkScheme processed")
+	Log.Debug("Planned resources ordering is: %s", wantedNetState.Order)
 
 	// initialize and configure LnxRtPlugin
 	lnxRtPlugin := lnx.NewLnxRtPlugin()

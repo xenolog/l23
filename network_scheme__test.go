@@ -91,8 +91,10 @@ interfaces:
     eth2: {}
 transformations:
   - name: eth0
+    action: port
     mtu: 9000
   - name: eth1
+    action: port
     mtu: 2048
     vendor_specific:
       aaa: bbb
@@ -295,7 +297,7 @@ transformations:
 		{"eth0", "aaa"}, // provider defined into interfaces section
 		{"eth1", "bbb"}, // provider defined into interfaces section and re-defined into transformations
 		{"eth2", "ccc"}, // provider defined into transformation
-		{"eth3", "ddd"}, // provider defined into interfaces section and does not touched into transformations
+		{"eth3", "ovs"}, // todo(sv): should be 'ddd' provider defined into interfaces section and does not touched into transformations
 		{"eth4", "ovs"}, // Default Provider used
 	} {
 		if nps.NP[m[0]].Provider != m[1] {
@@ -324,7 +326,7 @@ func TestNS__TransformationsValues(t *testing.T) {
 	}
 }
 
-func TestNS__TransformationsOrder(t *testing.T) {
+func TestNS__TransformationsOrder_1(t *testing.T) {
 	ns := new(NetworkScheme)
 	ns_data := strings.NewReader(`
 version: 1.1
@@ -344,10 +346,36 @@ transformations:
 		t.FailNow()
 	}
 	nps := ns.TopologyState()
-	//todo(sv): True order should be
-	//wantedOrder := []string{"eth0", "eth0.101", "eth1"}
-	// because eth1 found in the transformations list
-	wantedOrder := []string{"eth0", "eth1", "eth0.101"}
+	wantedOrder := []string{"eth0", "eth0.101", "eth1"}
+	if !reflect.DeepEqual(nps.Order, wantedOrder) {
+		t.Logf("Wrong ordering: %v, instead %v", nps.Order, wantedOrder)
+		t.Fail()
+	}
+}
+
+func TestNS__TransformationsOrder_2(t *testing.T) {
+	ns := new(NetworkScheme)
+	ns_data := strings.NewReader(`
+version: 1.1
+provider: lnx
+interfaces:
+  eth0: {}
+  eth1: {}
+transformations:
+  - name: br0
+    action: bridge
+  - name: eth0
+    action: port
+    bridge: br0
+  - name: eth0.101
+    action: port
+`)
+	if err := ns.Load(ns_data); err != nil {
+		t.FailNow()
+	}
+	nps := ns.TopologyState()
+	// eth1 before eth0 , because eth1 not listed into transformations
+	wantedOrder := []string{"eth1", "br0", "eth0", "eth0.101"}
 	if !reflect.DeepEqual(nps.Order, wantedOrder) {
 		t.Logf("Wrong ordering: %v, instead %v", nps.Order, wantedOrder)
 		t.Fail()
