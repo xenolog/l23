@@ -47,6 +47,14 @@ func (s *NPState) Type() string {
 	return s.LinkType
 }
 
+func (s *NPState) Master() int {
+	return s.attrs.MasterIndex
+}
+
+func (s *NPState) Parent() int {
+	return s.attrs.ParentIndex
+}
+
 func (s *NPState) String() string {
 	rv, _ := yaml.Marshal(s)
 	return string(rv)
