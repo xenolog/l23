@@ -1,0 +1,18 @@
+---
+version: 1.2
+provider: lnx
+#processing: declarative / imperative
+#config-provider: ubuntu16
+interfaces:
+  eth1: {}
+  eth2: {}
+transformations:
+  - name: bond0
+    action: bond
+    slaves:
+      - eth1
+      - eth2
+endpoints:
+  bond0:
+    IP:
+      - '10.1.251.1/24'

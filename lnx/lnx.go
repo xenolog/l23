@@ -1,7 +1,14 @@
 package lnx
 
 import (
+	"fmt"
+	"io/ioutil"
 	"net"
+	"os"
+	"sort"
+	"strings"
+
+	"reflect"
 
 	"github.com/vishvananda/netlink"
 	logger "github.com/xenolog/go-tiny-logger"
@@ -194,7 +201,7 @@ func (s *L2Port) Remove(dryrun bool) error {
 		s.log.Error("%s: error while port removing: %v", MsgPrefix, err)
 		return err
 	}
-	if err := s.handle.LinkAdd(link); err != nil {
+	if err := s.handle.LinkDel(link); err != nil {
 		s.log.Error("%s: error while port removing: %v", MsgPrefix, err)
 	} else {
 		s.log.Info("%s: port removed.", MsgPrefix)
@@ -211,9 +218,9 @@ func (s *L2Port) Modify(dryrun bool) error {
 	link, _ := netlink.LinkByName(s.Name())
 	attrs := link.Attrs()
 
-	if err := s.handle.LinkSetDown(link); err != nil {
-		s.log.Error("%s: error while port set to DOWN state: %v", MsgPrefix, err)
-	}
+	// if err := s.handle.LinkSetDown(link); err != nil {
+	// 	s.log.Error("%s: error while port set to DOWN state: %v", MsgPrefix, err)
+	// }
 
 	if s.wantedState.L2.Mtu > 0 && s.wantedState.L2.Mtu != attrs.MTU {
 		s.log.Debug("%s: setting MTU to: %v", MsgPrefix, s.wantedState.L2.Mtu)
@@ -242,12 +249,12 @@ func (s *L2Port) Modify(dryrun bool) error {
 		}
 	}
 
-	if s.wantedState.Online {
-		s.log.Debug("%s: setting to UP state", MsgPrefix)
-		if err := s.handle.LinkSetUp(link); err != nil {
-			s.log.Error("%s: error while port set to UP state: %v", MsgPrefix, err)
-		}
-	}
+	// if s.wantedState.Online {
+	// 	s.log.Debug("%s: setting to UP state", MsgPrefix)
+	// 	if err := s.handle.LinkSetUp(link); err != nil {
+	// 		s.log.Error("%s: error while port set to UP state: %v", MsgPrefix, err)
+	// 	}
+	// }
 
 	s.allignIPv4list()
 
@@ -298,7 +305,7 @@ func (s *L2Bridge) Remove(dryrun bool) (err error) {
 		s.log.Error("%s: error while bridge removing: %v", MsgPrefix, err)
 		return err
 	}
-	if err = s.handle.LinkAdd(link); err != nil {
+	if err = s.handle.LinkDel(link); err != nil {
 		s.log.Error("%s: error while bridge removing: %v", MsgPrefix, err)
 	} else {
 		s.log.Info("%s: bridge removed.", MsgPrefix)
@@ -346,6 +353,156 @@ func NewBridge() NpOperator {
 }
 
 // -----------------------------------------------------------------------------
+
+type L2Bond struct {
+	OpBase
+}
+
+func (s *L2Bond) Create(dryrun bool) (err error) {
+	if dryrun {
+		s.log.Info("%s dryrun: Bond '%s' created.", MsgPrefix, s.Name())
+		return nil
+	}
+
+	s.log.Info("%s Creating bond '%s'", MsgPrefix, s.Name())
+	bnd := netlink.NewLinkBond(netlink.LinkAttrs{Name: s.Name()})
+	if err = s.handle.LinkAdd(bnd); err != nil {
+		s.log.Error("%s: error while bond creating: %v", MsgPrefix, err)
+		return err
+	} else {
+		s.log.Info("%s: bond created.", MsgPrefix)
+	}
+
+	err = s.Modify(false)
+
+	return err
+}
+
+func (s *L2Bond) Remove(dryrun bool) (err error) {
+	if dryrun {
+		s.log.Info("%s: dryrun: Bond '%s' removed.", MsgPrefix, s.Name())
+		return nil
+	}
+	s.log.Info("%s: Removing Bond '%s'", MsgPrefix, s.Name())
+	link, _ := netlink.LinkByName(s.Name())
+	if err = s.handle.LinkSetDown(link); err != nil {
+		s.log.Error("%s: error while Bond removing: %v", MsgPrefix, err)
+		return err
+	}
+	if err = s.handle.LinkDel(link); err != nil {
+		s.log.Error("%s: error while Bond removing: %v", MsgPrefix, err)
+	} else {
+		s.log.Info("%s: Bond removed.", MsgPrefix)
+	}
+	return err
+}
+
+func (s *L2Bond) getSlaves(dryrun bool) (rv []string) {
+	if dryrun {
+		rv = []string{"eth1", "eth2"}
+		s.log.Info("%s dryrun: slaves for Bond '%s' is %v", MsgPrefix, s.Name(), rv)
+		return
+	}
+
+	// todo(sv): Research why this code does not work properly (race condition, may be)
+	// bondIfIndex := s.Link().Attrs().Index
+
+	// linkList, err := netlink.LinkList()
+	// if err != nil {
+	// 	s.log.Error("%v", err)
+	// 	return
+	// }
+	// for _, link := range linkList {
+	// 	linkAttrs := link.Attrs()
+	// 	s.log.Info("%s: FFF name='%s' master='%d'", MsgPrefix, linkAttrs.Name, linkAttrs.MasterIndex)
+	// 	if linkAttrs.MasterIndex == bondIfIndex {
+	// 		rv = append(rv, linkAttrs.Name)
+	// 	}
+	// }
+
+	bondSlavesFileName := fmt.Sprintf("/sys/class/net/%s/bonding/slaves", s.Name())
+	var (
+		rr   *os.File
+		err  error
+		data []byte
+	)
+	// Log.Debug("Run NetworkConfig with network scheme: '%s'", c.GlobalString("ns"))
+	if rr, err = os.Open(bondSlavesFileName); err != nil {
+		s.log.Error("Can't open file '%s': %v", bondSlavesFileName, err)
+		return
+	}
+	if data, err = ioutil.ReadAll(rr); err != nil {
+		s.log.Error("Can't process file '%s': %v", bondSlavesFileName, err)
+		return
+	}
+	rv = strings.Fields(string(data))
+	sort.Strings(rv)
+	return rv
+}
+
+func (s *L2Bond) Modify(dryrun bool) (err error) {
+	if dryrun {
+		s.log.Info("%s dryrun: Bond '%s' modifyed.", MsgPrefix, s.Name())
+		return nil
+	}
+
+	s.log.Info("%s: Modifying Bond '%s'", MsgPrefix, s.Name())
+	bondLink := s.Link()
+	bondAttrs := bondLink.Attrs()
+
+	// if err = s.handle.LinkSetDown(bondLink); err != nil {
+	// 	s.log.Error("%s: error while Bond set to DOWN state: %v", MsgPrefix, err)
+	// }
+
+	if s.wantedState.L2.Mtu > 0 && s.wantedState.L2.Mtu != bondAttrs.MTU {
+		s.log.Debug("%s: setting MTU to: %v", MsgPrefix, s.wantedState.L2.Mtu)
+		if err = s.handle.LinkSetMTU(bondLink, s.wantedState.L2.Mtu); err != nil {
+			s.log.Error("%s: error while Bond set MTU: %v", MsgPrefix, err)
+		}
+	}
+
+	bondSlaves := s.getSlaves(dryrun)
+	s.log.Debug("%s: Bond's wanted slaves: %v", MsgPrefix, s.wantedState.L2.Slaves)
+	s.log.Debug("%s: Bond's actual slaves: %v", MsgPrefix, bondSlaves)
+	if !reflect.DeepEqual(bondSlaves, s.wantedState.L2.Slaves) {
+		for _, slaveName := range s.wantedState.L2.Slaves {
+			if IndexString(bondSlaves, slaveName) >= 0 {
+				continue
+			}
+			s.log.Debug("%s: Enslaving '%s' to bond", MsgPrefix, slaveName)
+			slaveLink, err := s.handle.LinkByName(slaveName)
+			if err == nil {
+				err = s.handle.LinkSetDown(slaveLink)
+			}
+			if err == nil {
+				err = netlink.LinkSetBondSlave(slaveLink, &netlink.Bond{LinkAttrs: *bondAttrs})
+				// whi does not wokr??? err = s.handle.LinkSetMasterByIndex(slaveLink, bondAttrs.MasterIndex)
+			}
+			if err != nil {
+				s.log.Error("%s: error while Bond adding slave '%s': %v", MsgPrefix, slaveName, err)
+			}
+		}
+	}
+
+	if s.wantedState.Online {
+		s.log.Debug("%s: setting to UP state", MsgPrefix)
+		if err = s.handle.LinkSetUp(bondLink); err != nil {
+			s.log.Error("%s: error while Bond set to UP state: %v", MsgPrefix, err)
+		}
+	}
+
+	s.allignIPv4list()
+
+	return err
+}
+
+func NewBond() NpOperator {
+	rv := new(L2Bond)
+	rv.setupGlobals()
+	return rv
+}
+
+// -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
 
 // Init -- Runtime linux plugin entry point
@@ -369,6 +526,7 @@ func (s *LnxRtPlugin) Operators() NpOperators {
 	return NpOperators{
 		"port":   NewPort,
 		"bridge": NewBridge,
+		"bond":   NewBond,
 		// "endpoint":   NewIPv4,
 	}
 }
@@ -420,21 +578,30 @@ func (s *LnxRtPlugin) Observe() error {
 			IfIndex:  attrs.Index,
 			LinkType: link.Type(),
 		}
+		s.topology.NP[linkName].CacheAttrs(attrs)
 		if attrs.Flags&net.FlagUp != 0 {
 			s.topology.NP[linkName].Online = true
 		}
 		// s.fillL2stateByNetlinkLink()
+		mtu := attrs.MTU
+		if mtu == 1500 {
+			// workaround for default MTU value
+			mtu = 0
+		}
 		s.topology.NP[linkName].L2 = npstate.L2State{
 			// bridge, vlan, bond information should be catched here
-			Mtu: attrs.MTU,
+			Mtu: mtu,
 		}
 
 		if ipaddrs, err := s.handle.AddrList(link, unix.AF_INET); err == nil { // unix.AF_INET === netlink.FAMILY_V4 , but operable under OSX
 			// s.topology.NP[linkName].FillByNetlinkAddrList(&ipaddrInfo)
-			s.topology.NP[linkName].L3.IPv4 = make([]string, len(ipaddrs))
+			tmpString := ""
 			for _, addr := range ipaddrs {
-				s.topology.NP[linkName].L3.IPv4 = append(s.topology.NP[linkName].L3.IPv4, addr.IPNet.String())
+				// collect IP addresses. This livehack required to prevent empty IPs in the result.
+				// it happens :(
+				tmpString = fmt.Sprintf("%s %s", tmpString, addr.IPNet.String())
 			}
+			s.topology.NP[linkName].L3.IPv4 = strings.Fields(tmpString)
 
 		} else {
 			s.log.Error("Error while fetch L3 info for '%s' %v", linkName, err)

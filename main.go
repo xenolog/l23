@@ -140,7 +140,7 @@ func RunNetConfig(c *cli.Context) (err error) {
 	// npRemoved := []string{}
 	// npModifyed := []string{}
 
-	// walk through Wanted.NetState network primitives and implement snanges
+	// walk through Wanted.NetState network primitives and implement changes
 	// into network configuration
 	for _, npName := range wantedNetState.Order {
 		Log.Debug("Processing '%v'", npName)
