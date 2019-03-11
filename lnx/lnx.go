@@ -406,7 +406,6 @@ func (s *L2Bond) getSlaves(dryrun bool) (rv []string) {
 		s.log.Error("%v", err)
 		return
 	}
-
 	for _, link := range linkList {
 		linkAttrs := link.Attrs()
 		s.log.Info("%s: FFF name='%s' master='%d'", MsgPrefix, linkAttrs.Name, linkAttrs.MasterIndex)
