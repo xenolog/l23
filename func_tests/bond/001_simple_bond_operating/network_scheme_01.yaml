@@ -5,15 +5,14 @@ provider: lnx
 #config-provider: ubuntu16
 interfaces:
   eth1: {}
+  eth2: {}
 transformations:
-  - name: br1
-    action: bridge
-  - name: eth1
-    action: port
-    bridge: br1
+  - name: bond0
+    action: bond
+    slaves:
+      - eth1
+      - eth2
 endpoints:
-  eth1:
-    IP: []
-  br1:
+  bond0:
     IP:
       - '10.1.251.1/24'
