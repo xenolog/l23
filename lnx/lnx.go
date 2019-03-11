@@ -400,7 +400,7 @@ func (s *L2Bond) Modify(dryrun bool) (err error) {
 
 	s.log.Info("%s: Modifying Bond '%s'", MsgPrefix, s.Name())
 	// bondLink, _ := netlink.LinkByName(s.Name())
-	bondLink, _ := s.Link()
+	bondLink := s.Link()
 	bondAttrs := bondLink.Attrs()
 
 	if err = s.handle.LinkSetDown(bondLink); err != nil {
