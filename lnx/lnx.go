@@ -457,6 +457,9 @@ func (s *L2Bond) Modify(dryrun bool) (err error) {
 		for _, slaveName := range s.wantedState.L2.Slaves {
 			slaveLink, err := s.handle.LinkByName(slaveName)
 			if err == nil {
+				err = s.handle.LinkSetDown(slaveLink)
+			}
+			if err == nil {
 				err = netlink.LinkSetBondSlave(slaveLink, &netlink.Bond{LinkAttrs: *bondAttrs})
 			}
 			if err != nil {
