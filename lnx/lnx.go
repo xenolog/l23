@@ -452,7 +452,8 @@ func (s *L2Bond) Modify(dryrun bool) (err error) {
 				err = s.handle.LinkSetDown(slaveLink)
 			}
 			if err == nil {
-				err = netlink.LinkSetBondSlave(slaveLink, &netlink.Bond{LinkAttrs: *bondAttrs})
+				// err = netlink.LinkSetBondSlave(slaveLink, &netlink.Bond{LinkAttrs: *bondAttrs})
+				err = s.handle.LinkSetMasterByIndex(slaveLink, bondAttrs.MasterIndex)
 			}
 			if err != nil {
 				s.log.Error("%s: error while Bond adding slave '%s': %v", MsgPrefix, slaveName, err)
