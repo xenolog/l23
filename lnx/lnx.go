@@ -2,6 +2,7 @@ package lnx
 
 import (
 	"net"
+	"sort"
 
 	"reflect"
 
@@ -392,28 +393,29 @@ func (s *L2Bond) Remove(dryrun bool) (err error) {
 	return err
 }
 
-// func (s *L2Bond) getSlaves(dryrun bool) (rv []string) {
-// 	if dryrun {
-// 		rv = []string{"eth1", "eth2"}
-// 		s.log.Info("%s dryrun: Bond '%s' modifyed.", MsgPrefix, s.Name())
-// 		return
-// 	}
-// 	ifIndex := s.Link().Attrs().Index
+func (s *L2Bond) getSlaves(dryrun bool) (rv []string) {
+	if dryrun {
+		rv = []string{"eth1", "eth2"}
+		s.log.Info("%s dryrun: slaves for Bond '%s' is %v", MsgPrefix, s.Name(), rv)
+		return
+	}
+	bondIfIndex := s.Link().Attrs().Index
 
-// 	linkList, err := s.handle.LinkList()
-// 	if err != nil {
-// 		s.log.Error("%v", err)
-// 		return
-// 	}
+	linkList, err := s.handle.LinkList()
+	if err != nil {
+		s.log.Error("%v", err)
+		return
+	}
 
-// 	for _, link := range linkList {
-// 		attrs = link.Attrs()
-// 		if
-// 		linkName := attrs.Name
-// 	}
-
-// 	return
-// }
+	for _, link := range linkList {
+		linkAttrs := link.Attrs()
+		if linkAttrs.MasterIndex == bondIfIndex {
+			rv = append(rv, linkAttrs.Name)
+		}
+	}
+	sort.Strings(rv)
+	return rv
+}
 
 func (s *L2Bond) Modify(dryrun bool) (err error) {
 	if dryrun {
@@ -438,18 +440,19 @@ func (s *L2Bond) Modify(dryrun bool) (err error) {
 	}
 
 	s.log.Debug("%s: s.wantedState.L2.Slaves: %v", MsgPrefix, s.wantedState.L2.Slaves)
-	s.log.Debug("%s: s.Link: %v", MsgPrefix, bondLink)
-	linkReport, _ := yaml.Marshal(bondLink)
-	for _, i := range []string{"eth1", "eth2"} {
-		ll, _ := s.handle.LinkByName(i)
-		aa := ll.Attrs()
-		s.log.Debug("%s: '%s': %v, %v", MsgPrefix, i, aa.ParentIndex, aa.MasterIndex)
-	}
-	s.log.Debug("%s: s.Link: %s", MsgPrefix, linkReport)
-	s.log.Debug("%s: s.Attrs: %v", MsgPrefix, bondAttrs)
+	// s.log.Debug("%s: s.Link: %v", MsgPrefix, bondLink)
+	// linkReport, _ := yaml.Marshal(bondLink)
+	// for _, i := range []string{"eth1", "eth2"} {
+	// 	ll, _ := s.handle.LinkByName(i)
+	// 	aa := ll.Attrs()
+	// 	s.log.Debug("%s: '%s': %v, %v", MsgPrefix, i, aa.ParentIndex, aa.MasterIndex)
+	// }
+	// s.log.Debug("%s: s.Link: %s", MsgPrefix, linkReport)
+	// s.log.Debug("%s: s.Attrs: %v", MsgPrefix, bondAttrs)
 
-	s.log.Debug("%s: s.rtState.L2: %v", MsgPrefix, s.rtState.L2)
-	if !reflect.DeepEqual(s.rtState.L2.Slaves, s.wantedState.L2.Slaves) {
+	bondSlaves := s.getSlaves(dryrun)
+	s.log.Debug("%s: s.rtState.Slaves: %v", MsgPrefix, bondSlaves)
+	if !reflect.DeepEqual(bondSlaves, s.wantedState.L2.Slaves) {
 		s.log.Debug("%s: setting slaves list to: %v", MsgPrefix, s.wantedState.L2.Slaves)
 		for _, slaveName := range s.wantedState.L2.Slaves {
 			slaveLink, err := s.handle.LinkByName(slaveName)

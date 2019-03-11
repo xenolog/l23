@@ -40,9 +40,10 @@ type NPState struct {
 }
 
 // // Next methods implements netlink.NP interface
-// func (s *NPState) Attrs() *netlink.LinkAttrs {
-// 	return s.attrs
-// }
+func (s *NPState) Attrs() *netlink.LinkAttrs {
+	return s.attrs
+}
+
 func (s *NPState) Type() string {
 	return s.LinkType
 }
