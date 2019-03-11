@@ -55,6 +55,10 @@ func (s *NPState) Parent() int {
 	return s.attrs.ParentIndex
 }
 
+func (s *NPState) CacheAttrs(a *netlink.LinkAttrs) {
+	s.attrs = a
+}
+
 func (s *NPState) String() string {
 	rv, _ := yaml.Marshal(s)
 	return string(rv)

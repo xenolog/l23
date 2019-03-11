@@ -556,6 +556,7 @@ func (s *LnxRtPlugin) Observe() error {
 			IfIndex:  attrs.Index,
 			LinkType: link.Type(),
 		}
+		s.topology.NP[linkName].CacheAttrs(&attrs)
 		if attrs.Flags&net.FlagUp != 0 {
 			s.topology.NP[linkName].Online = true
 		}
