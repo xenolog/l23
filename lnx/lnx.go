@@ -426,9 +426,9 @@ func (s *L2Bond) Modify(dryrun bool) (err error) {
 	bondLink := s.Link()
 	bondAttrs := bondLink.Attrs()
 
-	if err = s.handle.LinkSetDown(bondLink); err != nil {
-		s.log.Error("%s: error while Bond set to DOWN state: %v", MsgPrefix, err)
-	}
+	// if err = s.handle.LinkSetDown(bondLink); err != nil {
+	// 	s.log.Error("%s: error while Bond set to DOWN state: %v", MsgPrefix, err)
+	// }
 
 	if s.wantedState.L2.Mtu > 0 && s.wantedState.L2.Mtu != bondAttrs.MTU {
 		s.log.Debug("%s: setting MTU to: %v", MsgPrefix, s.wantedState.L2.Mtu)
