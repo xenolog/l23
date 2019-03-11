@@ -214,9 +214,9 @@ func (s *L2Port) Modify(dryrun bool) error {
 	link, _ := netlink.LinkByName(s.Name())
 	attrs := link.Attrs()
 
-	if err := s.handle.LinkSetDown(link); err != nil {
-		s.log.Error("%s: error while port set to DOWN state: %v", MsgPrefix, err)
-	}
+	// if err := s.handle.LinkSetDown(link); err != nil {
+	// 	s.log.Error("%s: error while port set to DOWN state: %v", MsgPrefix, err)
+	// }
 
 	if s.wantedState.L2.Mtu > 0 && s.wantedState.L2.Mtu != attrs.MTU {
 		s.log.Debug("%s: setting MTU to: %v", MsgPrefix, s.wantedState.L2.Mtu)
@@ -245,12 +245,12 @@ func (s *L2Port) Modify(dryrun bool) error {
 		}
 	}
 
-	if s.wantedState.Online {
-		s.log.Debug("%s: setting to UP state", MsgPrefix)
-		if err := s.handle.LinkSetUp(link); err != nil {
-			s.log.Error("%s: error while port set to UP state: %v", MsgPrefix, err)
-		}
-	}
+	// if s.wantedState.Online {
+	// 	s.log.Debug("%s: setting to UP state", MsgPrefix)
+	// 	if err := s.handle.LinkSetUp(link); err != nil {
+	// 		s.log.Error("%s: error while port set to UP state: %v", MsgPrefix, err)
+	// 	}
+	// }
 
 	s.allignIPv4list()
 
@@ -452,8 +452,8 @@ func (s *L2Bond) Modify(dryrun bool) (err error) {
 				err = s.handle.LinkSetDown(slaveLink)
 			}
 			if err == nil {
-				// err = netlink.LinkSetBondSlave(slaveLink, &netlink.Bond{LinkAttrs: *bondAttrs})
-				err = s.handle.LinkSetMasterByIndex(slaveLink, bondAttrs.MasterIndex)
+				err = netlink.LinkSetBondSlave(slaveLink, &netlink.Bond{LinkAttrs: *bondAttrs})
+				// whi does not wokr??? err = s.handle.LinkSetMasterByIndex(slaveLink, bondAttrs.MasterIndex)
 			}
 			if err != nil {
 				s.log.Error("%s: error while Bond adding slave '%s': %v", MsgPrefix, slaveName, err)
