@@ -3,6 +3,8 @@ package lnx
 import (
 	"net"
 
+	"reflect"
+
 	"github.com/vishvananda/netlink"
 	logger "github.com/xenolog/go-tiny-logger"
 	npstate "github.com/xenolog/l23/npstate"
@@ -194,7 +196,7 @@ func (s *L2Port) Remove(dryrun bool) error {
 		s.log.Error("%s: error while port removing: %v", MsgPrefix, err)
 		return err
 	}
-	if err := s.handle.LinkAdd(link); err != nil {
+	if err := s.handle.LinkDel(link); err != nil {
 		s.log.Error("%s: error while port removing: %v", MsgPrefix, err)
 	} else {
 		s.log.Info("%s: port removed.", MsgPrefix)
@@ -298,7 +300,7 @@ func (s *L2Bridge) Remove(dryrun bool) (err error) {
 		s.log.Error("%s: error while bridge removing: %v", MsgPrefix, err)
 		return err
 	}
-	if err = s.handle.LinkAdd(link); err != nil {
+	if err = s.handle.LinkDel(link); err != nil {
 		s.log.Error("%s: error while bridge removing: %v", MsgPrefix, err)
 	} else {
 		s.log.Info("%s: bridge removed.", MsgPrefix)
@@ -346,6 +348,103 @@ func NewBridge() NpOperator {
 }
 
 // -----------------------------------------------------------------------------
+
+type L2Bond struct {
+	OpBase
+}
+
+func (s *L2Bond) Create(dryrun bool) (err error) {
+	if dryrun {
+		s.log.Info("%s dryrun: Bond '%s' created.", MsgPrefix, s.Name())
+		return nil
+	}
+
+	s.log.Info("%s Creating bond '%s'", MsgPrefix, s.Name())
+	bnd := netlink.NewLinkBond(netlink.LinkAttrs{Name: s.Name()})
+	if err = s.handle.LinkAdd(bnd); err != nil {
+		s.log.Error("%s: error while bond creating: %v", MsgPrefix, err)
+		return err
+	} else {
+		s.log.Info("%s: bond created.", MsgPrefix)
+	}
+
+	err = s.Modify(false)
+
+	return err
+}
+
+func (s *L2Bond) Remove(dryrun bool) (err error) {
+	if dryrun {
+		s.log.Info("%s: dryrun: Bond '%s' removed.", MsgPrefix, s.Name())
+		return nil
+	}
+	s.log.Info("%s: Removing Bond '%s'", MsgPrefix, s.Name())
+	link, _ := netlink.LinkByName(s.Name())
+	if err = s.handle.LinkSetDown(link); err != nil {
+		s.log.Error("%s: error while Bond removing: %v", MsgPrefix, err)
+		return err
+	}
+	if err = s.handle.LinkDel(link); err != nil {
+		s.log.Error("%s: error while Bond removing: %v", MsgPrefix, err)
+	} else {
+		s.log.Info("%s: Bond removed.", MsgPrefix)
+	}
+	return err
+}
+
+func (s *L2Bond) Modify(dryrun bool) (err error) {
+	if dryrun {
+		s.log.Info("%s dryrun: Bond '%s' modifyed.", MsgPrefix, s.Name())
+		return nil
+	}
+
+	s.log.Info("%s: Modifying Bond '%s'", MsgPrefix, s.Name())
+	bondLink, _ := netlink.LinkByName(s.Name())
+	bondAttrs := bondLink.Attrs()
+
+	if err = s.handle.LinkSetDown(bondLink); err != nil {
+		s.log.Error("%s: error while Bond set to DOWN state: %v", MsgPrefix, err)
+	}
+
+	if s.wantedState.L2.Mtu > 0 && s.wantedState.L2.Mtu != bondAttrs.MTU {
+		s.log.Debug("%s: setting MTU to: %v", MsgPrefix, s.wantedState.L2.Mtu)
+		if err = s.handle.LinkSetMTU(bondLink, s.wantedState.L2.Mtu); err != nil {
+			s.log.Error("%s: error while Bond set MTU: %v", MsgPrefix, err)
+		}
+	}
+
+	if !reflect.DeepEqual(s.rtState.L2.Slaves, s.wantedState.L2.Slaves) {
+		s.log.Debug("%s: setting slaves list to: %v", MsgPrefix, s.wantedState.L2.Slaves)
+		for _, slaveName := range s.wantedState.L2.Slaves {
+			slaveLink, err := s.handle.LinkByName(slaveName)
+			if err == nil {
+				err = netlink.LinkSetBondSlave(slaveLink, &Bond{LinkAttrs: *bondAttrs})
+			}
+			if err != nil {
+				s.log.Error("%s: error while Bond adding slave '%s': %v", MsgPrefix, slaveName, err)
+			}
+		}
+	}
+
+	if s.wantedState.Online {
+		s.log.Debug("%s: setting to UP state", MsgPrefix)
+		if err = s.handle.LinkSetUp(bondLink); err != nil {
+			s.log.Error("%s: error while Bond set to UP state: %v", MsgPrefix, err)
+		}
+	}
+
+	s.allignIPv4list()
+
+	return err
+}
+
+func NewBond() NpOperator {
+	rv := new(L2Bond)
+	rv.setupGlobals()
+	return rv
+}
+
+// -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
 
 // Init -- Runtime linux plugin entry point
@@ -369,6 +468,7 @@ func (s *LnxRtPlugin) Operators() NpOperators {
 	return NpOperators{
 		"port":   NewPort,
 		"bridge": NewBridge,
+		"bond":   NewBond,
 		// "endpoint":   NewIPv4,
 	}
 }
