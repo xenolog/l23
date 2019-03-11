@@ -392,6 +392,29 @@ func (s *L2Bond) Remove(dryrun bool) (err error) {
 	return err
 }
 
+// func (s *L2Bond) getSlaves(dryrun bool) (rv []string) {
+// 	if dryrun {
+// 		rv = []string{"eth1", "eth2"}
+// 		s.log.Info("%s dryrun: Bond '%s' modifyed.", MsgPrefix, s.Name())
+// 		return
+// 	}
+// 	ifIndex := s.Link().Attrs().Index
+
+// 	linkList, err := s.handle.LinkList()
+// 	if err != nil {
+// 		s.log.Error("%v", err)
+// 		return
+// 	}
+
+// 	for _, link := range linkList {
+// 		attrs = link.Attrs()
+// 		if
+// 		linkName := attrs.Name
+// 	}
+
+// 	return
+// }
+
 func (s *L2Bond) Modify(dryrun bool) (err error) {
 	if dryrun {
 		s.log.Info("%s dryrun: Bond '%s' modifyed.", MsgPrefix, s.Name())
@@ -417,6 +440,11 @@ func (s *L2Bond) Modify(dryrun bool) (err error) {
 	s.log.Debug("%s: s.wantedState.L2.Slaves: %v", MsgPrefix, s.wantedState.L2.Slaves)
 	s.log.Debug("%s: s.Link: %v", MsgPrefix, bondLink)
 	linkReport, _ := yaml.Marshal(bondLink)
+	for _, i := range []string{"eth1", "eth2"} {
+		ll, _ := s.handle.LinkByName(i)
+		aa := ll.Attrs()
+		s.log.Debug("%s: '%s': %v, %v", MsgPrefix, i, aa.ParentIndex, aa.MasterIndex)
+	}
 	s.log.Debug("%s: s.Link: %s", MsgPrefix, linkReport)
 	s.log.Debug("%s: s.Attrs: %v", MsgPrefix, bondAttrs)
 
