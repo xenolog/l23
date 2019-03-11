@@ -417,7 +417,7 @@ func (s *L2Bond) Modify(dryrun bool) (err error) {
 	s.log.Debug("%s: s.wantedState.L2.Slaves: %v", MsgPrefix, s.wantedState.L2.Slaves)
 	s.log.Debug("%s: s.Link: %v", MsgPrefix, bondLink)
 	linkReport, _ := yaml.Marshal(bondLink)
-	s.log.Debug("%s: s.Link: %v", MsgPrefix, linkReport)
+	s.log.Debug("%s: s.Link: %s", MsgPrefix, linkReport)
 	s.log.Debug("%s: s.Attrs: %v", MsgPrefix, bondAttrs)
 
 	s.log.Debug("%s: s.rtState.L2: %v", MsgPrefix, s.rtState.L2)
