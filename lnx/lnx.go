@@ -414,7 +414,7 @@ func (s *L2Bond) Modify(dryrun bool) (err error) {
 	}
 
 	s.log.Debug("%s: s.wantedState.L2.Slaves: %v", MsgPrefix, s.wantedState.L2.Slaves)
-	s.log.Debug("%s: s.rtState.L2.Slaves: %v", MsgPrefix, s.rtState.L2.Slaves)
+	s.log.Debug("%s: s.rtState.L2: %v", MsgPrefix, s.rtState.L2)
 	if !reflect.DeepEqual(s.rtState.L2.Slaves, s.wantedState.L2.Slaves) {
 		s.log.Debug("%s: setting slaves list to: %v", MsgPrefix, s.wantedState.L2.Slaves)
 		for _, slaveName := range s.wantedState.L2.Slaves {
