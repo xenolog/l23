@@ -409,7 +409,7 @@ func (s *L2Bond) getSlaves(dryrun bool) (rv []string) {
 
 	for _, link := range linkList {
 		linkAttrs := link.Attrs()
-		s.log.Info("%s: FFF name='%s' master='%d'", MsgPrefix, s.Name(), linkAttrs.MasterIndex)
+		s.log.Info("%s: FFF name='%s' master='%d'", MsgPrefix, linkAttrs.Name, linkAttrs.MasterIndex)
 		if linkAttrs.MasterIndex == bondIfIndex {
 			rv = append(rv, linkAttrs.Name)
 		}
