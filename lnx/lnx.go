@@ -424,7 +424,6 @@ func (s *L2Bond) Modify(dryrun bool) (err error) {
 	}
 
 	s.log.Info("%s: Modifying Bond '%s'", MsgPrefix, s.Name())
-	// bondLink, _ := netlink.LinkByName(s.Name())
 	bondLink := s.Link()
 	bondAttrs := bondLink.Attrs()
 
@@ -439,22 +438,15 @@ func (s *L2Bond) Modify(dryrun bool) (err error) {
 		}
 	}
 
-	s.log.Debug("%s: s.wantedState.L2.Slaves: %v", MsgPrefix, s.wantedState.L2.Slaves)
-	// s.log.Debug("%s: s.Link: %v", MsgPrefix, bondLink)
-	// linkReport, _ := yaml.Marshal(bondLink)
-	// for _, i := range []string{"eth1", "eth2"} {
-	// 	ll, _ := s.handle.LinkByName(i)
-	// 	aa := ll.Attrs()
-	// 	s.log.Debug("%s: '%s': %v, %v", MsgPrefix, i, aa.ParentIndex, aa.MasterIndex)
-	// }
-	// s.log.Debug("%s: s.Link: %s", MsgPrefix, linkReport)
-	// s.log.Debug("%s: s.Attrs: %v", MsgPrefix, bondAttrs)
-
 	bondSlaves := s.getSlaves(dryrun)
-	s.log.Debug("%s: s.rtState.Slaves: %v", MsgPrefix, bondSlaves)
+	s.log.Debug("%s: Bond's wanted slaves: %v", MsgPrefix, s.wantedState.L2.Slaves)
+	s.log.Debug("%s: Bond's actual slaves: %v", MsgPrefix, bondSlaves)
 	if !reflect.DeepEqual(bondSlaves, s.wantedState.L2.Slaves) {
-		s.log.Debug("%s: setting slaves list to: %v", MsgPrefix, s.wantedState.L2.Slaves)
 		for _, slaveName := range s.wantedState.L2.Slaves {
+			if IndexString(bondSlaves, slaveName) >= 0 {
+				continue
+			}
+			s.log.Debug("%s: Enslaving '%s' to bond", MsgPrefix, slaveName)
 			slaveLink, err := s.handle.LinkByName(slaveName)
 			if err == nil {
 				err = s.handle.LinkSetDown(slaveLink)
