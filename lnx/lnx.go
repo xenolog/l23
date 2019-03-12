@@ -401,7 +401,7 @@ func (s *L2Bond) getSlaves(dryrun bool) (rv []string) {
 	}
 	bondIfIndex := s.Link().Attrs().Index
 
-	linkList, err := s.handle.LinkList()
+	linkList, err := netlink.LinkList()
 	if err != nil {
 		s.log.Error("%v", err)
 		return
