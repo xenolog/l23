@@ -111,7 +111,7 @@ func (s *TopologyState) Compare(n *TopologyState) *DiffTopologyStatees {
 			n.NP[key].Action = ""
 			rv.Waste = append(rv.Waste, key)
 		} else if !reflect.DeepEqual(np, n.NP[key]) {
-			Log.Debug("*** Comparing '%s':\n%v \n%v", np, n.NP[key])
+			Log.Debug("*** Comparing '%s':\n%v \n%v", key, np, n.NP[key])
 			rv.Different = append(rv.Different, key)
 		}
 	}
