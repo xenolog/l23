@@ -1,8 +1,12 @@
 package lnx
 
 import (
+	"fmt"
+	"io/ioutil"
 	"net"
+	"os"
 	"sort"
+	"strings"
 
 	"reflect"
 
@@ -399,20 +403,39 @@ func (s *L2Bond) getSlaves(dryrun bool) (rv []string) {
 		s.log.Info("%s dryrun: slaves for Bond '%s' is %v", MsgPrefix, s.Name(), rv)
 		return
 	}
-	bondIfIndex := s.Link().Attrs().Index
 
-	linkList, err := netlink.LinkList()
-	if err != nil {
-		s.log.Error("%v", err)
+	// todo(sv): Research why this code does not work properly (race condition, may be)
+	// bondIfIndex := s.Link().Attrs().Index
+
+	// linkList, err := netlink.LinkList()
+	// if err != nil {
+	// 	s.log.Error("%v", err)
+	// 	return
+	// }
+	// for _, link := range linkList {
+	// 	linkAttrs := link.Attrs()
+	// 	s.log.Info("%s: FFF name='%s' master='%d'", MsgPrefix, linkAttrs.Name, linkAttrs.MasterIndex)
+	// 	if linkAttrs.MasterIndex == bondIfIndex {
+	// 		rv = append(rv, linkAttrs.Name)
+	// 	}
+	// }
+
+	bondSlavesFileName := fmt.Sprintf("/sys/class/net/%s/bonding/slaves", s.Name())
+	var (
+		rr   *os.File
+		err  error
+		data []byte
+	)
+	// Log.Debug("Run NetworkConfig with network scheme: '%s'", c.GlobalString("ns"))
+	if rr, err = os.Open(bondSlavesFileName); err != nil {
+		s.log.Error("Can't open file '%s': %v", bondSlavesFileName, err)
 		return
 	}
-	for _, link := range linkList {
-		linkAttrs := link.Attrs()
-		s.log.Info("%s: FFF name='%s' master='%d'", MsgPrefix, linkAttrs.Name, linkAttrs.MasterIndex)
-		if linkAttrs.MasterIndex == bondIfIndex {
-			rv = append(rv, linkAttrs.Name)
-		}
+	if data, err = ioutil.ReadAll(rr); err != nil {
+		s.log.Error("Can't process file '%s': %v", bondSlavesFileName, err)
+		return
 	}
+	rv = strings.Fields(string(data))
 	sort.Strings(rv)
 	return rv
 }
