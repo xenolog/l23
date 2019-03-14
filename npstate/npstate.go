@@ -105,6 +105,7 @@ func (s *TopologyState) Compare(n *TopologyState) *DiffTopologyStatees {
 
 	// check for different and removed Np
 	for key, np := range s.NP {
+		fmt.Printf("*** Comparing '%s':", key)
 		if _, ok := n.NP[key]; !ok {
 			rv.Waste = append(rv.Waste, key)
 		} else if n.NP[key].Action == "remove" {
@@ -113,7 +114,6 @@ func (s *TopologyState) Compare(n *TopologyState) *DiffTopologyStatees {
 			rv.Waste = append(rv.Waste, key)
 		} else if !reflect.DeepEqual(np, n.NP[key]) {
 			// Log.Debug("*** Comparing '%s':\n%s \n%s", key, np, n.NP[key])
-			fmt.Printf("*** Comparing '%s':", key)
 			fmt.Printf("%v", np)
 			fmt.Printf("%v", n.NP[key])
 			rv.Different = append(rv.Different, key)
