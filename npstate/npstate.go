@@ -1,7 +1,6 @@
 package npstate
 
 import (
-	"fmt"
 	"reflect"
 
 	"github.com/vishvananda/netlink"
@@ -114,8 +113,8 @@ func (s *TopologyState) Compare(n *TopologyState) *DiffTopologyStatees {
 			rv.Waste = append(rv.Waste, key)
 		} else if !reflect.DeepEqual(np, n.NP[key]) {
 			// Log.Debug("*** Comparing '%s':\n%s \n%s", key, np, n.NP[key])
-			fmt.Printf("old>>> %v", np)
-			fmt.Printf("new>>> %v", n.NP[key])
+			Log.Debug("old>>> %v", np)
+			Log.Debug("new>>> %v", n.NP[key])
 			rv.Different = append(rv.Different, key)
 		}
 	}
