@@ -67,10 +67,10 @@ func (s *NPState) CompareL23(n *NPState) bool {
 	fmt.Printf("*** Comparing '%s' and '%s':\n", s.Name, n.Name)
 	sl2, _ := yaml.Marshal(s.L2)
 	sn2, _ := yaml.Marshal(n.L2)
-	fmt.Printf("*** L2:\n %s\n%s\n", sl2, sn2)
-	fmt.Printf("*** L3: %v\n%v\n", s.L3, n.L3)
-	rv := reflect.DeepEqual(s.L2, n.L2) && reflect.DeepEqual(s.L3, n.L3)
-	fmt.Printf(">>> %s\n", rv)
+	fmt.Printf("*** L2:\n%s\n%s\n", sl2, sn2)
+	fmt.Printf("*** L3: %v %v\n", s.L3, n.L3)
+	rv := reflect.DeepEqual(s.L2, n.L2) //&& reflect.DeepEqual(s.L3, n.L3)
+	fmt.Printf(">>> %v\n", rv)
 	return rv
 }
 
