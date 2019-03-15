@@ -75,7 +75,9 @@ func (s *NPState) CompareL2(n *NPState) bool {
 
 // CompareL3 -- A method, allows to compare L3 properties of NetworkPrimitive
 func (s *NPState) CompareL3(n *NPState) bool {
-	fmt.Printf("*** Comparing L3 '%s' and '%s':\n", s.Name, n.Name)
+	// fmt.Printf("*** Comparing L3 '%s' and '%s':\n", s.Name, n.Name)
+	// I do not known why comparing xxx.L3.something by DeepEq are failed for equal lists.
+	// such comparing are works
 	s4 := make([]string, len(s.L3.IPv4))
 	copy(s4, s.L3.IPv4)
 	sort.Strings(s4)
@@ -83,20 +85,17 @@ func (s *NPState) CompareL3(n *NPState) bool {
 	copy(n4, n.L3.IPv4)
 	sort.Strings(n4)
 	rv := reflect.DeepEqual(s4, n4)
-	sl3, _ := yaml.Marshal(s4)
-	sn2, _ := yaml.Marshal(n4)
-	fmt.Printf("*** L3:\n%s\n%s\n", sl3, sn2)
-	fmt.Printf(">>> %v\n", rv)
+	// sl3, _ := yaml.Marshal(s4)
+	// sn2, _ := yaml.Marshal(n4)
+	// fmt.Printf("*** L3:\n%s\n%s\n", sl3, sn2)
+	// fmt.Printf(">>> %v\n", rv)
 	return rv
 }
 
 // CompareL23 -- A method, allows to compare L2 and L3 Properties together of
 // NetworkPrimitive
 func (s *NPState) CompareL23(n *NPState) bool {
-	rv := s.CompareL2(n) //&& reflect.DeepEqual(s.L3, n.L3)
-	rv2 := s.CompareL3(n)
-	fmt.Printf(">>> %v %v\n\n", rv, rv2)
-	return rv
+	return s.CompareL2(n) && s.CompareL3(n)
 }
 
 func (s *NPState) String() string {
@@ -128,7 +127,7 @@ type TopologyState struct {
 	DefaultProvider string
 }
 
-// This method allow to compare TopologyState with another
+// Compare -- compare TopologyState with another
 // TopologyState (runtime and wanted, for example)
 // and return report about diferences
 func (s *TopologyState) Compare(n *TopologyState) *DiffTopologyStatees {
@@ -143,7 +142,6 @@ func (s *TopologyState) Compare(n *TopologyState) *DiffTopologyStatees {
 
 	// check for different and removed Np
 	for key, np := range s.NP {
-		// fmt.Printf("*** Comparing '%s':", key)
 		if _, ok := n.NP[key]; !ok {
 			rv.Waste = append(rv.Waste, key)
 		} else if n.NP[key].Action == "remove" {
@@ -151,10 +149,7 @@ func (s *TopologyState) Compare(n *TopologyState) *DiffTopologyStatees {
 			n.NP[key].Action = ""
 			rv.Waste = append(rv.Waste, key)
 		} else if !np.CompareL23(n.NP[key]) {
-			// } else if !reflect.DeepEqual(np, n.NP[key]) {
-			// 	//	fmt.Printf("*** Comparing '%s':\n%s \n%s", key, np, n.NP[key])
-			// 	fmt.Printf("old>>> %v", np)
-			fmt.Printf("CMP result>>> %v", np.CompareL23(n.NP[key]))
+			// fmt.Printf("CMP result>>> %v", np.CompareL23(n.NP[key]))
 			rv.Different = append(rv.Different, key)
 		}
 	}

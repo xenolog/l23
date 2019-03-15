@@ -595,9 +595,10 @@ func (s *LnxRtPlugin) Observe() error {
 
 		if ipaddrs, err := s.handle.AddrList(link, unix.AF_INET); err == nil { // unix.AF_INET === netlink.FAMILY_V4 , but operable under OSX
 			// s.topology.NP[linkName].FillByNetlinkAddrList(&ipaddrInfo)
-			// s.topology.NP[linkName].L3.IPv4 = make([]string, len(ipaddrs))
 			tmpString := ""
 			for _, addr := range ipaddrs {
+				// collect IP addresses. This livehack required to prevent empty IPs in the result.
+				// it happens :(
 				tmpString = fmt.Sprintf("%s %s", tmpString, addr.IPNet.String())
 			}
 			s.topology.NP[linkName].L3.IPv4 = strings.Fields(tmpString)
