@@ -583,9 +583,13 @@ func (s *LnxRtPlugin) Observe() error {
 			s.topology.NP[linkName].Online = true
 		}
 		// s.fillL2stateByNetlinkLink()
+		mtu := attrs.MTU
+		if mtu == 1500 {
+			mtu = 0
+		}
 		s.topology.NP[linkName].L2 = npstate.L2State{
 			// bridge, vlan, bond information should be catched here
-			Mtu: attrs.MTU,
+			Mtu: mtu,
 		}
 
 		if ipaddrs, err := s.handle.AddrList(link, unix.AF_INET); err == nil { // unix.AF_INET === netlink.FAMILY_V4 , but operable under OSX
