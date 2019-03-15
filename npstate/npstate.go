@@ -1,7 +1,6 @@
 package npstate
 
 import (
-	"fmt"
 	"reflect"
 
 	"github.com/vishvananda/netlink"
@@ -61,6 +60,12 @@ func (s *NPState) CacheAttrs(a *netlink.LinkAttrs) {
 	s.attrs = a
 }
 
+// CompareL23 -- A method, allows to compare L2 and L3 Properties of
+// NetworkPrimitive
+func (s *NPState) CompareL23(n *NPState) bool {
+	return reflect.DeepEqual(s.L2, n.L2) && reflect.DeepEqual(s.L3, n.L3)
+}
+
 func (s *NPState) String() string {
 	rv, _ := yaml.Marshal(s)
 	return string(rv)
@@ -105,17 +110,18 @@ func (s *TopologyState) Compare(n *TopologyState) *DiffTopologyStatees {
 
 	// check for different and removed Np
 	for key, np := range s.NP {
-		fmt.Printf("*** Comparing '%s':", key)
+		// fmt.Printf("*** Comparing '%s':", key)
 		if _, ok := n.NP[key]; !ok {
 			rv.Waste = append(rv.Waste, key)
 		} else if n.NP[key].Action == "remove" {
 			// "remove" is a pseudo-action for force add any network primitive to removal queue
 			n.NP[key].Action = ""
 			rv.Waste = append(rv.Waste, key)
-		} else if !reflect.DeepEqual(np, n.NP[key]) {
-			//	fmt.Printf("*** Comparing '%s':\n%s \n%s", key, np, n.NP[key])
-			fmt.Printf("old>>> %v", np)
-			fmt.Printf("new>>> %v", n.NP[key])
+		} else if !np.CompareL23(n.NP[key]) {
+			// } else if !reflect.DeepEqual(np, n.NP[key]) {
+			// 	//	fmt.Printf("*** Comparing '%s':\n%s \n%s", key, np, n.NP[key])
+			// 	fmt.Printf("old>>> %v", np)
+			// 	fmt.Printf("new>>> %v", n.NP[key])
 			rv.Different = append(rv.Different, key)
 		}
 	}
