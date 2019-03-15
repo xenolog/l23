@@ -3,6 +3,7 @@ package npstate
 import (
 	"fmt"
 	"reflect"
+	"sort"
 
 	"github.com/vishvananda/netlink"
 	logger "github.com/xenolog/go-tiny-logger"
@@ -61,7 +62,35 @@ func (s *NPState) CacheAttrs(a *netlink.LinkAttrs) {
 	s.attrs = a
 }
 
-// CompareL23 -- A method, allows to compare L2 and L3 Properties of
+// CompareL2 -- A method, allows to compare L2 properties of NetworkPrimitive
+func (s *NPState) CompareL2(n *NPState) bool {
+	fmt.Printf("*** Comparing L2 '%s' and '%s':\n", s.Name, n.Name)
+	sl2, _ := yaml.Marshal(s.L2)
+	sn2, _ := yaml.Marshal(n.L2)
+	fmt.Printf("*** L2:\n%s\n%s\n", sl2, sn2)
+	rv := reflect.DeepEqual(s.L2, n.L2)
+	fmt.Printf(">>> %v\n", rv)
+	return rv
+}
+
+// CompareL3 -- A method, allows to compare L3 properties of NetworkPrimitive
+func (s *NPState) CompareL3(n *NPState) bool {
+	fmt.Printf("*** Comparing L3 '%s' and '%s':\n", s.Name, n.Name)
+	s4 := make([]string, len(s.L3.IPv4))
+	copy(s4, s.L3.IPv4)
+	sort.Strings(s4)
+	n4 := make([]string, len(n.L3.IPv4))
+	copy(n4, n.L3.IPv4)
+	sort.Strings(n4)
+	rv := reflect.DeepEqual(s4, n4)
+	sl3, _ := yaml.Marshal(s4)
+	sn2, _ := yaml.Marshal(n4)
+	fmt.Printf("*** L3:\n%s\n%s\n", sl3, sn2)
+	fmt.Printf(">>> %v\n", rv)
+	return rv
+}
+
+// CompareL23 -- A method, allows to compare L2 and L3 Properties together of
 // NetworkPrimitive
 func (s *NPState) CompareL23(n *NPState) bool {
 	fmt.Printf("*** Comparing '%s' and '%s':\n", s.Name, n.Name)
