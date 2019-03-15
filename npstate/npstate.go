@@ -65,8 +65,8 @@ func (s *NPState) CacheAttrs(a *netlink.LinkAttrs) {
 // NetworkPrimitive
 func (s *NPState) CompareL23(n *NPState) bool {
 	fmt.Printf("*** Comparing '%s' and '%s':\n", s.Name, n.Name)
-	fmt.Printf("*** L2: %v\n", s.L2, n.L2)
-	fmt.Printf("*** L3: %v\n", s.L3, n.L3)
+	fmt.Printf("*** L2: %v\n%v\n", s.L2, n.L2)
+	fmt.Printf("*** L3: %v\n%v\n", s.L3, n.L3)
 	return reflect.DeepEqual(s.L2, n.L2) && reflect.DeepEqual(s.L3, n.L3)
 }
 
