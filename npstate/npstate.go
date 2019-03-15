@@ -64,12 +64,12 @@ func (s *NPState) CacheAttrs(a *netlink.LinkAttrs) {
 
 // CompareL2 -- A method, allows to compare L2 properties of NetworkPrimitive
 func (s *NPState) CompareL2(n *NPState) bool {
-	fmt.Printf("*** Comparing L2 '%s' and '%s':\n", s.Name, n.Name)
-	sl2, _ := yaml.Marshal(s.L2)
-	sn2, _ := yaml.Marshal(n.L2)
-	fmt.Printf("*** L2:\n%s\n%s\n", sl2, sn2)
+	// fmt.Printf("*** Comparing L2 '%s' and '%s':\n", s.Name, n.Name)
+	// sl2, _ := yaml.Marshal(s.L2)
+	// sn2, _ := yaml.Marshal(n.L2)
+	// fmt.Printf("*** L2:\n%s\n%s\n", sl2, sn2)
 	rv := reflect.DeepEqual(s.L2, n.L2)
-	fmt.Printf(">>> %v\n", rv)
+	// fmt.Printf(">>> %v\n", rv)
 	return rv
 }
 
@@ -95,7 +95,11 @@ func (s *NPState) CompareL3(n *NPState) bool {
 // CompareL23 -- A method, allows to compare L2 and L3 Properties together of
 // NetworkPrimitive
 func (s *NPState) CompareL23(n *NPState) bool {
-	return s.CompareL2(n) && s.CompareL3(n)
+	l2 := s.CompareL2(n)
+	l3 := s.CompareL3(n)
+	oo := (s.Online == n.Online)
+	fmt.Printf("*** '%s-%s': %v %v %v\n", s.Name, n.Name, l2, l3, oo)
+	return l2 && l3 && oo
 }
 
 func (s *NPState) String() string {

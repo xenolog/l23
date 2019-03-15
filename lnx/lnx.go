@@ -8,8 +8,6 @@ import (
 	"sort"
 	"strings"
 
-	"reflect"
-
 	"github.com/vishvananda/netlink"
 	logger "github.com/xenolog/go-tiny-logger"
 	npstate "github.com/xenolog/l23/npstate"
@@ -29,6 +27,11 @@ type LnxRtPlugin struct {
 	log      *logger.Logger
 	handle   *netlink.Handle
 	topology *npstate.TopologyState
+}
+
+type BondSlavesDiffType struct {
+	toAdd    []string
+	toRemove []string
 }
 
 // -----------------------------------------------------------------------------
@@ -214,7 +217,9 @@ func (s *L2Port) Modify(dryrun bool) error {
 		s.log.Info("%s dryrun: Port '%s' modifyed.", MsgPrefix, s.Name())
 		return nil
 	}
+
 	s.log.Info("%s: Modifying port '%s'", MsgPrefix, s.Name())
+	// needUp := false
 	link, _ := netlink.LinkByName(s.Name())
 	attrs := link.Attrs()
 
@@ -242,6 +247,7 @@ func (s *L2Port) Modify(dryrun bool) error {
 		}
 	} else {
 		// remove from bridge
+		// todo(sv): Check if master is bridge, not bond !!!
 		if attrs.MasterIndex != 0 {
 			if err := s.handle.LinkSetNoMaster(link); err != nil {
 				s.log.Debug("%s: port can't removed from bridge: %v", MsgPrefix, err)
@@ -249,12 +255,12 @@ func (s *L2Port) Modify(dryrun bool) error {
 		}
 	}
 
-	// if s.wantedState.Online {
-	// 	s.log.Debug("%s: setting to UP state", MsgPrefix)
-	// 	if err := s.handle.LinkSetUp(link); err != nil {
-	// 		s.log.Error("%s: error while port set to UP state: %v", MsgPrefix, err)
-	// 	}
-	// }
+	if s.wantedState.Online {
+		s.log.Debug("%s: setting to UP state", MsgPrefix)
+		if err := s.handle.LinkSetUp(link); err != nil {
+			s.log.Error("%s: error while port set to UP state: %v", MsgPrefix, err)
+		}
+	}
 
 	s.allignIPv4list()
 
@@ -440,6 +446,35 @@ func (s *L2Bond) getSlaves(dryrun bool) (rv []string) {
 	return rv
 }
 
+// diffSlaves -- genrate diff between current and wanted Bond slaves list
+// returns (diff, ok), where ok==true if differnces found
+func (s *L2Bond) diffSlaves(dryrun bool, wantedSlaves []string) (*BondSlavesDiffType, bool) {
+	actualSlaves := s.getSlaves(dryrun) // already sorted by design
+	sort.Strings(wantedSlaves)          // should be sorted
+	s.log.Debug("%s: Bond's wanted slaves: %v", MsgPrefix, wantedSlaves)
+	s.log.Debug("%s: Bond's actual slaves: %v", MsgPrefix, actualSlaves)
+
+	ok := false
+	rv := &BondSlavesDiffType{}
+
+	// check for new addition
+	for _, ifname := range wantedSlaves {
+		if n := IndexString(actualSlaves, ifname); n == -1 {
+			rv.toAdd = append(rv.toAdd, ifname)
+			ok = true
+		}
+	}
+
+	// check for unwanted member
+	for _, ifname := range actualSlaves {
+		if n := IndexString(wantedSlaves, ifname); n == -1 {
+			rv.toRemove = append(rv.toRemove, ifname)
+			ok = true
+		}
+	}
+	return rv, ok
+}
+
 func (s *L2Bond) Modify(dryrun bool) (err error) {
 	if dryrun {
 		s.log.Info("%s dryrun: Bond '%s' modifyed.", MsgPrefix, s.Name())
@@ -461,14 +496,22 @@ func (s *L2Bond) Modify(dryrun bool) (err error) {
 		}
 	}
 
-	bondSlaves := s.getSlaves(dryrun)
-	s.log.Debug("%s: Bond's wanted slaves: %v", MsgPrefix, s.wantedState.L2.Slaves)
-	s.log.Debug("%s: Bond's actual slaves: %v", MsgPrefix, bondSlaves)
-	if !reflect.DeepEqual(bondSlaves, s.wantedState.L2.Slaves) {
-		for _, slaveName := range s.wantedState.L2.Slaves {
-			if IndexString(bondSlaves, slaveName) >= 0 {
-				continue
+	diff, need := s.diffSlaves(dryrun, s.wantedState.L2.Slaves)
+	if need {
+		for _, slaveName := range diff.toRemove {
+			s.log.Debug("%s: Removing '%s' from bond", MsgPrefix, slaveName)
+			slaveLink, err := s.handle.LinkByName(slaveName)
+			if err == nil {
+				err = s.handle.LinkSetDown(slaveLink)
 			}
+			if err == nil {
+				err = s.handle.LinkSetNoMaster(slaveLink)
+			}
+			if err != nil {
+				s.log.Error("%s: error while Bond removing slave '%s': %v", MsgPrefix, slaveName, err)
+			}
+		}
+		for _, slaveName := range diff.toAdd {
 			s.log.Debug("%s: Enslaving '%s' to bond", MsgPrefix, slaveName)
 			slaveLink, err := s.handle.LinkByName(slaveName)
 			if err == nil {
