@@ -1,6 +1,7 @@
 package npstate
 
 import (
+	"fmt"
 	"reflect"
 
 	"github.com/vishvananda/netlink"
@@ -63,6 +64,9 @@ func (s *NPState) CacheAttrs(a *netlink.LinkAttrs) {
 // CompareL23 -- A method, allows to compare L2 and L3 Properties of
 // NetworkPrimitive
 func (s *NPState) CompareL23(n *NPState) bool {
+	fmt.Printf("*** Comparing '%s' and '%s':\n", s.Name, n.Name)
+	fmt.Printf("*** L2: %v\n", s.L2, n.L2)
+	fmt.Printf("*** L3: %v\n", s.L3, n.L3)
 	return reflect.DeepEqual(s.L2, n.L2) && reflect.DeepEqual(s.L3, n.L3)
 }
 
@@ -121,7 +125,7 @@ func (s *TopologyState) Compare(n *TopologyState) *DiffTopologyStatees {
 			// } else if !reflect.DeepEqual(np, n.NP[key]) {
 			// 	//	fmt.Printf("*** Comparing '%s':\n%s \n%s", key, np, n.NP[key])
 			// 	fmt.Printf("old>>> %v", np)
-			// 	fmt.Printf("new>>> %v", n.NP[key])
+			fmt.Printf("CMP result>>> %v", np.CompareL23(n.NP[key]))
 			rv.Different = append(rv.Different, key)
 		}
 	}
