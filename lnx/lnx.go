@@ -585,6 +585,7 @@ func (s *LnxRtPlugin) Observe() error {
 		// s.fillL2stateByNetlinkLink()
 		mtu := attrs.MTU
 		if mtu == 1500 {
+			// workaround for default MTU value
 			mtu = 0
 		}
 		s.topology.NP[linkName].L2 = npstate.L2State{
@@ -594,10 +595,12 @@ func (s *LnxRtPlugin) Observe() error {
 
 		if ipaddrs, err := s.handle.AddrList(link, unix.AF_INET); err == nil { // unix.AF_INET === netlink.FAMILY_V4 , but operable under OSX
 			// s.topology.NP[linkName].FillByNetlinkAddrList(&ipaddrInfo)
-			s.topology.NP[linkName].L3.IPv4 = make([]string, len(ipaddrs))
+			// s.topology.NP[linkName].L3.IPv4 = make([]string, len(ipaddrs))
+			tmpString := ""
 			for _, addr := range ipaddrs {
-				s.topology.NP[linkName].L3.IPv4 = append(s.topology.NP[linkName].L3.IPv4, addr.IPNet.String())
+				tmpString = fmt.Sprintf("%s %s", tmpString, addr.IPNet.String())
 			}
+			s.topology.NP[linkName].L3.IPv4 = strings.Fields(tmpString)
 
 		} else {
 			s.log.Error("Error while fetch L3 info for '%s' %v", linkName, err)
