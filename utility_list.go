@@ -74,7 +74,12 @@ func UtilityListNetworkPrimitives(c *cli.Context) error {
 			online = "UP"
 		}
 
-		Log.Info("%02d: %2s%15s (%s) %s", link.IfIndex, online, link.Name, link.Type(), ipaddrs)
+		linkType := link.Type()
+		if link.Master() != 0 || link.Parent() != 0 {
+			linkType = fmt.Sprintf("%s<M=%d,P=%d>", linkType, link.Master(), link.Parent())
+		}
+
+		Log.Info("%02d: %2s%15s (%s) %s", link.IfIndex, online, link.Name, linkType, ipaddrs)
 	}
 
 	return nil
