@@ -3,7 +3,7 @@ set -x
 
 IFNAMES=${IFNAME:-eth1 eth2}
 BRNAME=${BRNAME:-br1}
-BONDNAME=${BONDNAME:-bond1}
+BONDNAME=${BONDNAME:-bond0}
 
 for i in $IFNAMES ; do
   ip addr flush $i
