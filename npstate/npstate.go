@@ -93,15 +93,8 @@ func (s *NPState) CompareL3(n *NPState) bool {
 // CompareL23 -- A method, allows to compare L2 and L3 Properties together of
 // NetworkPrimitive
 func (s *NPState) CompareL23(n *NPState) bool {
-	fmt.Printf("*** Comparing '%s' and '%s':\n", s.Name, n.Name)
-	sl2, _ := yaml.Marshal(s.L2)
-	sn2, _ := yaml.Marshal(n.L2)
-	fmt.Printf("*** L2:\n%s\n%s\n", sl2, sn2)
-	sl2, _ = yaml.Marshal(s.L3)
-	sn2, _ = yaml.Marshal(n.L3)
-	fmt.Printf("*** L3:\n%s\n%s\n", sl2, sl2)
-	rv := reflect.DeepEqual(s.L2, n.L2) //&& reflect.DeepEqual(s.L3, n.L3)
-	rv2 := reflect.DeepEqual(&s.L3, &n.L3)
+	rv := s.CompareL2(n) //&& reflect.DeepEqual(s.L3, n.L3)
+	rv2 := s.CompareL3(n)
 	fmt.Printf(">>> %v %v\n\n", rv, rv2)
 	return rv
 }
