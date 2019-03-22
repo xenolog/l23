@@ -549,6 +549,12 @@ func (s *L2Bond) Modify(dryrun bool) (err error) {
 		}
 	}
 
+	if s.wantedState.L2.Bridge != "" {
+		s.AddToBridge(s.wantedState.L2.Bridge)
+	} else {
+		s.RemoveFromBridge()
+	}
+
 	if s.wantedState.Online {
 		s.log.Debug("%s: setting to UP state", MsgPrefix)
 		if err = s.handle.LinkSetUp(bondLink); err != nil {
