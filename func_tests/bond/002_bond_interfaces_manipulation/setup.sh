@@ -1,7 +1,7 @@
 #!/bin/bash
 set -x
 
-IFNAMES=${IFNAME:-eth1 eth2}
+IFNAMES=${IFNAMES:-eth1 eth2 eth3}
 BRNAME=${BRNAME:-br1}
 BONDNAME=${BONDNAME:-bond0}
 

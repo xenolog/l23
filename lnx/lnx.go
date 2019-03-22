@@ -8,8 +8,6 @@ import (
 	"sort"
 	"strings"
 
-	"reflect"
-
 	"github.com/vishvananda/netlink"
 	logger "github.com/xenolog/go-tiny-logger"
 	npstate "github.com/xenolog/l23/npstate"
@@ -29,6 +27,11 @@ type LnxRtPlugin struct {
 	log      *logger.Logger
 	handle   *netlink.Handle
 	topology *npstate.TopologyState
+}
+
+type BondSlavesDiffType struct {
+	toAdd    []string
+	toRemove []string
 }
 
 // -----------------------------------------------------------------------------
@@ -73,6 +76,34 @@ func (s *OpBase) IfIndex() int {
 		return 0
 	}
 	return link.Attrs().Index
+}
+
+func (s *OpBase) AddToBridge(brName string) error {
+	// attach to bridge
+	br, err := netlink.LinkByName(brName)
+	if br == nil || err != nil {
+		s.log.Debug("%s: bridge '%s' can't be located: %v", MsgPrefix, brName, err)
+		return err
+	}
+
+	if err := s.handle.LinkSetMasterByIndex(s.Link(), br.Attrs().Index); err != nil {
+		s.log.Debug("%s: '%s' can't be became a member of bridge '%s': %v", MsgPrefix, s.Name(), brName, err)
+		return err
+	}
+	return nil
+}
+
+func (s *OpBase) RemoveFromBridge() error {
+	// remove from bridge
+	// todo(sv): Check if master is bridge, not bond !!!
+	link := s.Link()
+	if link.Attrs().MasterIndex != 0 {
+		if err := s.handle.LinkSetNoMaster(link); err != nil {
+			s.log.Debug("%s: '%s' can't be removed from bridge: %v", MsgPrefix, s.Name(), err)
+			return err
+		}
+	}
+	return nil
 }
 
 // returns address list in the original order
@@ -214,7 +245,9 @@ func (s *L2Port) Modify(dryrun bool) error {
 		s.log.Info("%s dryrun: Port '%s' modifyed.", MsgPrefix, s.Name())
 		return nil
 	}
+
 	s.log.Info("%s: Modifying port '%s'", MsgPrefix, s.Name())
+	// needUp := false
 	link, _ := netlink.LinkByName(s.Name())
 	attrs := link.Attrs()
 
@@ -230,31 +263,17 @@ func (s *L2Port) Modify(dryrun bool) error {
 	}
 
 	if s.wantedState.L2.Bridge != "" {
-		// attach to bridge
-		br, err := netlink.LinkByName(s.wantedState.L2.Bridge)
-		if br == nil || err != nil {
-			s.log.Debug("%s: bridge '%s' can't be located: %v", MsgPrefix, s.wantedState.L2.Bridge, err)
-		}
-
-		if err := s.handle.LinkSetMasterByIndex(link, br.Attrs().Index); err != nil {
-			s.log.Debug("%s: port can't be became a member of bridge '%s': %v", MsgPrefix, s.wantedState.L2.Bridge, err)
-			return err
-		}
+		s.AddToBridge(s.wantedState.L2.Bridge)
 	} else {
-		// remove from bridge
-		if attrs.MasterIndex != 0 {
-			if err := s.handle.LinkSetNoMaster(link); err != nil {
-				s.log.Debug("%s: port can't removed from bridge: %v", MsgPrefix, err)
-			}
-		}
+		s.RemoveFromBridge()
 	}
 
-	// if s.wantedState.Online {
-	// 	s.log.Debug("%s: setting to UP state", MsgPrefix)
-	// 	if err := s.handle.LinkSetUp(link); err != nil {
-	// 		s.log.Error("%s: error while port set to UP state: %v", MsgPrefix, err)
-	// 	}
-	// }
+	if s.wantedState.Online {
+		s.log.Debug("%s: setting to UP state", MsgPrefix)
+		if err := s.handle.LinkSetUp(link); err != nil {
+			s.log.Error("%s: error while port set to UP state: %v", MsgPrefix, err)
+		}
+	}
 
 	s.allignIPv4list()
 
@@ -344,6 +363,15 @@ func (s *L2Bridge) Modify(dryrun bool) (err error) {
 	s.allignIPv4list()
 
 	return err
+}
+
+func (s *L2Bridge) AddToBridge(brName string) error {
+	s.log.Error("%s: There are no able to add the bridge to another bridge.", MsgPrefix)
+	return nil
+}
+func (s *L2Bridge) RemoveFromBridge() error {
+	s.log.Error("%s: There are no able to remove the bridge from another bridge.", MsgPrefix)
+	return nil
 }
 
 func NewBridge() NpOperator {
@@ -440,6 +468,35 @@ func (s *L2Bond) getSlaves(dryrun bool) (rv []string) {
 	return rv
 }
 
+// diffSlaves -- genrate diff between current and wanted Bond slaves list
+// returns (diff, ok), where ok==true if differnces found
+func (s *L2Bond) diffSlaves(dryrun bool, wantedSlaves []string) (*BondSlavesDiffType, bool) {
+	actualSlaves := s.getSlaves(dryrun) // already sorted by design
+	sort.Strings(wantedSlaves)          // should be sorted
+	s.log.Debug("%s: Bond's wanted slaves: %v", MsgPrefix, wantedSlaves)
+	s.log.Debug("%s: Bond's actual slaves: %v", MsgPrefix, actualSlaves)
+
+	ok := false
+	rv := &BondSlavesDiffType{}
+
+	// check for new addition
+	for _, ifname := range wantedSlaves {
+		if n := IndexString(actualSlaves, ifname); n == -1 {
+			rv.toAdd = append(rv.toAdd, ifname)
+			ok = true
+		}
+	}
+
+	// check for unwanted member
+	for _, ifname := range actualSlaves {
+		if n := IndexString(wantedSlaves, ifname); n == -1 {
+			rv.toRemove = append(rv.toRemove, ifname)
+			ok = true
+		}
+	}
+	return rv, ok
+}
+
 func (s *L2Bond) Modify(dryrun bool) (err error) {
 	if dryrun {
 		s.log.Info("%s dryrun: Bond '%s' modifyed.", MsgPrefix, s.Name())
@@ -461,14 +518,22 @@ func (s *L2Bond) Modify(dryrun bool) (err error) {
 		}
 	}
 
-	bondSlaves := s.getSlaves(dryrun)
-	s.log.Debug("%s: Bond's wanted slaves: %v", MsgPrefix, s.wantedState.L2.Slaves)
-	s.log.Debug("%s: Bond's actual slaves: %v", MsgPrefix, bondSlaves)
-	if !reflect.DeepEqual(bondSlaves, s.wantedState.L2.Slaves) {
-		for _, slaveName := range s.wantedState.L2.Slaves {
-			if IndexString(bondSlaves, slaveName) >= 0 {
-				continue
+	diff, need := s.diffSlaves(dryrun, s.wantedState.L2.Slaves)
+	if need {
+		for _, slaveName := range diff.toRemove {
+			s.log.Debug("%s: Removing '%s' from bond", MsgPrefix, slaveName)
+			slaveLink, err := s.handle.LinkByName(slaveName)
+			if err == nil {
+				err = s.handle.LinkSetDown(slaveLink)
 			}
+			if err == nil {
+				err = s.handle.LinkSetNoMaster(slaveLink)
+			}
+			if err != nil {
+				s.log.Error("%s: error while Bond removing slave '%s': %v", MsgPrefix, slaveName, err)
+			}
+		}
+		for _, slaveName := range diff.toAdd {
 			s.log.Debug("%s: Enslaving '%s' to bond", MsgPrefix, slaveName)
 			slaveLink, err := s.handle.LinkByName(slaveName)
 			if err == nil {
@@ -482,6 +547,12 @@ func (s *L2Bond) Modify(dryrun bool) (err error) {
 				s.log.Error("%s: error while Bond adding slave '%s': %v", MsgPrefix, slaveName, err)
 			}
 		}
+	}
+
+	if s.wantedState.L2.Bridge != "" {
+		s.AddToBridge(s.wantedState.L2.Bridge)
+	} else {
+		s.RemoveFromBridge()
 	}
 
 	if s.wantedState.Online {
