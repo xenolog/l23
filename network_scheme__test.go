@@ -432,14 +432,14 @@ transformations:
 		t.Logf("Field 'Slaves' not present or invalid")
 		t.Fail()
 	}
-	if !nps.NP["xxx"].L2.Bpdu_forward {
-		t.Logf("Field 'Bpdu_forward' not present or invalid")
-		t.Fail()
-	}
-	if !nps.NP["xxx"].L2.Stp {
-		t.Logf("Field 'Stp' not present or invalid")
-		t.Fail()
-	}
+	// if !nps.NP["xxx"].L2.Bpdu_forward {
+	// 	t.Logf("Field 'Bpdu_forward' not present or invalid")
+	// 	t.Fail()
+	// }
+	// if !nps.NP["xxx"].L2.Stp {
+	// 	t.Logf("Field 'Stp' not present or invalid")
+	// 	t.Fail()
+	// }
 	if t.Failed() {
 		txt, _ := yaml.Marshal(nps.NP["xxx"])
 		t.Logf(string(txt))

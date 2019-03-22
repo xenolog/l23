@@ -11,6 +11,9 @@ transformations:
   - name: br1
     mtu:  1496
     action: bridge
+    vendor_specific:
+      stp: false
+      bpdu_forward: false
   - name: br2
     action: bridge
     vendor_specific:

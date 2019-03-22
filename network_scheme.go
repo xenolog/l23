@@ -107,8 +107,8 @@ func (s *NetworkScheme) TopologyState() *npstate.TopologyState {
 		rv.NP[tr.Name].L2.Parent = tr.Parent
 		rv.NP[tr.Name].L2.Slaves = tr.Slaves
 		rv.NP[tr.Name].L2.Vlan_id = tr.Vlan_id
-		rv.NP[tr.Name].L2.Stp = tr.Stp                   // todo(sv): move to vendor_specific
-		rv.NP[tr.Name].L2.Bpdu_forward = tr.Bpdu_forward // todo(sv): move to vendor_specific
+		// rv.NP[tr.Name].L2.Stp = tr.Stp                   // todo(sv): move to vendor_specific
+		// rv.NP[tr.Name].L2.Bpdu_forward = tr.Bpdu_forward // todo(sv): move to vendor_specific
 		if tr.Provider != "" {
 			rv.NP[tr.Name].Provider = tr.Provider
 		} else if rv.NP[tr.Name].Provider == "" {

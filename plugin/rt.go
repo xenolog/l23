@@ -19,6 +19,7 @@ type NpOperator interface {
 	//todo(sv): State() *NPState // move status generation here
 	// Link() netlink.NP	// This two methods are Provider-specific
 	// IfIndex() int		// IMHO it is a big cons to intlude to interface
+	// Provider ???
 }
 
 type NpOperators map[string]interface{}
