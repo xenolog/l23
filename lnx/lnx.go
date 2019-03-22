@@ -78,6 +78,34 @@ func (s *OpBase) IfIndex() int {
 	return link.Attrs().Index
 }
 
+func (s *OpBase) AddToBridge(brName string) error {
+	// attach to bridge
+	br, err := netlink.LinkByName(brName)
+	if br == nil || err != nil {
+		s.log.Debug("%s: bridge '%s' can't be located: %v", MsgPrefix, brName, err)
+		return err
+	}
+
+	if err := s.handle.LinkSetMasterByIndex(s.Link(), br.Attrs().Index); err != nil {
+		s.log.Debug("%s: '%s' can't be became a member of bridge '%s': %v", MsgPrefix, s.Name(), brName, err)
+		return err
+	}
+	return nil
+}
+
+func (s *OpBase) RemoveFromBridge() error {
+	// remove from bridge
+	// todo(sv): Check if master is bridge, not bond !!!
+	link := s.Link()
+	if link.Attrs().MasterIndex != 0 {
+		if err := s.handle.LinkSetNoMaster(link); err != nil {
+			s.log.Debug("%s: '%s' can't be removed from bridge: %v", MsgPrefix, s.Name(), err)
+			return err
+		}
+	}
+	return nil
+}
+
 // returns address list in the original order
 func (s *OpBase) IPv4addrList() []string {
 
@@ -235,24 +263,9 @@ func (s *L2Port) Modify(dryrun bool) error {
 	}
 
 	if s.wantedState.L2.Bridge != "" {
-		// attach to bridge
-		br, err := netlink.LinkByName(s.wantedState.L2.Bridge)
-		if br == nil || err != nil {
-			s.log.Debug("%s: bridge '%s' can't be located: %v", MsgPrefix, s.wantedState.L2.Bridge, err)
-		}
-
-		if err := s.handle.LinkSetMasterByIndex(link, br.Attrs().Index); err != nil {
-			s.log.Debug("%s: port can't be became a member of bridge '%s': %v", MsgPrefix, s.wantedState.L2.Bridge, err)
-			return err
-		}
+		s.AddToBridge(s.wantedState.L2.Bridge)
 	} else {
-		// remove from bridge
-		// todo(sv): Check if master is bridge, not bond !!!
-		if attrs.MasterIndex != 0 {
-			if err := s.handle.LinkSetNoMaster(link); err != nil {
-				s.log.Debug("%s: port can't removed from bridge: %v", MsgPrefix, err)
-			}
-		}
+		s.RemoveFromBridge()
 	}
 
 	if s.wantedState.Online {
@@ -350,6 +363,15 @@ func (s *L2Bridge) Modify(dryrun bool) (err error) {
 	s.allignIPv4list()
 
 	return err
+}
+
+func (s *L2Bridge) AddToBridge(brName string) error {
+	s.log.Error("%s: There are no able to add the bridge to another bridge.", MsgPrefix)
+	return nil
+}
+func (s *L2Bridge) RemoveFromBridge() error {
+	s.log.Error("%s: There are no able to remove the bridge from another bridge.", MsgPrefix)
+	return nil
 }
 
 func NewBridge() NpOperator {
