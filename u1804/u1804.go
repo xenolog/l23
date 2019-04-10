@@ -1,219 +1,139 @@
-package lnx
+package u1804
 
 import (
-	"fmt"
-	"net"
-	"strings"
+	"errors"
 
-	"github.com/vishvananda/netlink"
+	"gopkg.in/yaml.v2"
+
 	logger "github.com/xenolog/go-tiny-logger"
 	npstate "github.com/xenolog/l23/npstate"
-	. "github.com/xenolog/l23/plugin"
-	. "github.com/xenolog/l23/utils"
-	"golang.org/x/sys/unix"
+	// . "github.com/xenolog/l23/plugin"
+	// . "github.com/xenolog/l23/utils"
+	// "golang.org/x/sys/unix"
 )
 
 const (
-	MsgPrefix = "Ubuntu 1804 netplan plugin"
+	MsgPrefix = "Netplan plugin"
 )
 
-// var LnxRtPluginEntryPoint *LnxRtPlugin
+// -----------------------------------------------------------------------------
 
-// type U1804Plugin struct {
-// 	log      *logger.Logger
-// 	handle   *netlink.Handle
-// 	topology *npstate.TopologyState
-// }
+type SCBase struct {
+	Addresses []string `yaml:",omitempty"`
+	Dhcp4     bool
+	Dhcp6     bool
+}
+
+func (s *SCBase) AddAddresses(aa []string) {
+	if len(aa) > 0 {
+		s.Addresses = append(s.Addresses, aa...)
+	}
+}
 
 // -----------------------------------------------------------------------------
 
 type SCVlan struct {
-	Id        int
-	Link      string
-	Addresses []string
-	Dhcp4     bool
-	Dhcp6     bool
+	SCBase `yaml:",inline"`
+	Id     int
+	Link   string
 }
-type SCVlans map[string]SCVlan
+type SCVlans map[string]*SCVlan
 
 type SCBridge struct {
-	Interfaces []string
-	Addresses  []string
-	Dhcp4      bool
-	Dhcp6      bool
+	SCBase     `yaml:",inline"`
+	Interfaces []string `yaml:",omitempty"`
 }
-type SCBridges map[string]SCBridge
+type SCBridges map[string]*SCBridge
 
 type SCBond struct {
-	Interfaces []string
-	Addresses  []string
-	Dhcp4      bool
-	Dhcp6      bool
+	SCBase     `yaml:",inline"`
+	Interfaces []string `yaml:",omitempty"`
 }
-type SCBonds map[string]SCBond
+type SCBonds map[string]*SCBond
 
 type SCEthernet struct {
-	Match     map[string]string
-	Addresses []string
-	Dhcp4     bool
-	Dhcp6     bool
+	SCBase `yaml:",inline"`
+	Match  map[string]string `yaml:",omitempty"`
 }
-type SCEthernets map[string]SCEthernet
+type SCEthernets map[string]*SCEthernet
 
 type SavedConfig struct {
 	log         *logger.Logger
-	wantedState *npstate.NPState
+	wantedState *npstate.NPStates
 	Version     string
 	Renderer    string
-	Ethernets   SCEthernets
-	Bonds       SCBonds
-	Vlans       SCVlans
-	Bridges     SCBridges
+	Ethernets   SCEthernets `yaml:",omitempty"` //, inline, flow
+	Bonds       SCBonds     `yaml:",omitempty"`
+	Vlans       SCVlans     `yaml:",omitempty"`
+	Bridges     SCBridges   `yaml:",omitempty"`
 }
 
 // -----------------------------------------------------------------------------
 
-func NewSavedConfig(wantedState *npstate.NPState) *SavedConfig {
-	rv := &SavedConfig{
-		wantedState: wantedState,
-		Version:     "2",
-		Renderer:    "networkd",
+func (s *SavedConfig) Generate() error {
+	if s.wantedState == nil {
+		errMsg := "Wanted states of Network primitives are not set."
+		s.log.Error("%s: %s", MsgPrefix, errMsg)
+		return errors.New(errMsg)
 	}
-	// rv.setupGlobals()
-	return rv
-}
-
-// -----------------------------------------------------------------------------
-// -----------------------------------------------------------------------------
-
-// Init -- Runtime linux plugin entry point
-func (s *LnxRtPlugin) Init(log *logger.Logger, hh *netlink.Handle) (err error) {
-	s.log = log
-	if s.handle == nil && hh == nil {
-		// generate new handle if need
-		if s.handle, err = netlink.NewHandle(); err != nil {
-			s.log.Error("%v", err)
-			return err
-		}
-	} else if hh != nil {
-		// setup handle
-		s.handle = hh
-	}
-	LnxRtPluginEntryPoint = s
-	return nil
-}
-
-func (s *LnxRtPlugin) Operators() NpOperators {
-	return NpOperators{
-		"port":   NewPort,
-		"bridge": NewBridge,
-		"bond":   NewBond,
-		// "endpoint":   NewIPv4,
-	}
-}
-
-func (s *LnxRtPlugin) Version() string {
-	return "LNX RUNTIME PLUGIN: v0.0.1"
-}
-
-// Setup netlink handler if need.
-// if nil given -- netlink handler will be created automatically
-func (s *LnxRtPlugin) setHandle(hh *netlink.Handle) (err error) {
-	if s.handle == nil && hh == nil {
-		// generate new handle if need
-		if s.handle, err = netlink.NewHandle(); err != nil {
-			s.log.Error("%v", err)
-		}
-	} else if hh != nil {
-		// setup handle
-		s.handle = hh
-	}
-	return
-}
-
-func (s *LnxRtPlugin) Observe() error {
-	s.topology = npstate.NewTopologyState()
-
-	var (
-		linkList []netlink.Link
-		err      error
-		attrs    *netlink.LinkAttrs
-	)
-
-	s.log.Info("%s: Gathering current network topology", MsgPrefix)
-
-	s.setHandle(nil)
-
-	s.log.Debug("%s: Fetching LinkList from netlink.", MsgPrefix)
-	if linkList, err = s.handle.LinkList(); err != nil {
-		s.log.Error("%v", err)
-		return err
-	}
-
-	for _, link := range linkList {
-		attrs = link.Attrs()
-		linkName := attrs.Name
-		s.log.Debug("%s: Processing link '%s'", MsgPrefix, linkName)
-		s.topology.NP[linkName] = &npstate.NPState{
-			Name:     attrs.Name,
-			IfIndex:  attrs.Index,
-			LinkType: link.Type(),
-		}
-		s.topology.NP[linkName].CacheAttrs(attrs)
-		if attrs.Flags&net.FlagUp != 0 {
-			s.topology.NP[linkName].Online = true
-		}
-		// s.fillL2stateByNetlinkLink()
-		mtu := attrs.MTU
-		if mtu == 1500 {
-			// workaround for default MTU value
-			mtu = 0
-		}
-		s.topology.NP[linkName].L2 = npstate.L2State{
-			// bridge, vlan, bond information should be catched here
-			Mtu: mtu,
-		}
-
-		if ipaddrs, err := s.handle.AddrList(link, unix.AF_INET); err == nil { // unix.AF_INET === netlink.FAMILY_V4 , but operable under OSX
-			// s.topology.NP[linkName].FillByNetlinkAddrList(&ipaddrInfo)
-			tmpString := ""
-			for _, addr := range ipaddrs {
-				// collect IP addresses. This livehack required to prevent empty IPs in the result.
-				// it happens :(
-				tmpString = fmt.Sprintf("%s %s", tmpString, addr.IPNet.String())
+	for _, np := range *s.wantedState {
+		switch np.Action {
+		case "port":
+			if np.L2.Vlan_id != 0 {
+				// vlan
+				if _, ok := s.Ethernets[np.L2.Parent]; !ok {
+					s.Ethernets[np.L2.Parent] = &SCEthernet{}
+				}
+				s.Vlans[np.Name] = &SCVlan{
+					Id:   np.L2.Vlan_id,
+					Link: np.L2.Parent,
+				}
+				s.Vlans[np.Name].AddAddresses(np.L3.IPv4)
+			} else {
+				// just ethernet
+				s.Ethernets[np.Name] = &SCEthernet{}
+				s.Ethernets[np.Name].AddAddresses(np.L3.IPv4)
 			}
-			s.topology.NP[linkName].L3.IPv4 = strings.Fields(tmpString)
-
-		} else {
-			s.log.Error("Error while fetch L3 info for '%s' %v", linkName, err)
+			// default:
+			// 	errMsg := fmt.Sprintf("Unsupported 'action' for '%s'.", np.Name)
+			// 	s.log.Error("%s: %s", MsgPrefix, errMsg)
+			// 	return errors.New(errMsg)
 		}
+
 	}
-	s.log.Debug("%s: gathering done.", MsgPrefix)
 	return nil
 }
 
-func (s *LnxRtPlugin) Topology() *npstate.TopologyState {
-	return s.topology
+func (s *SavedConfig) String() string {
+	rv, _ := yaml.Marshal(s)
+	return string(rv[:])
 }
 
-func (s *LnxRtPlugin) GetNp(name string) *npstate.NPState {
-	rv, ok := s.topology.NP[name]
-	if !ok {
-		s.log.Error("Network primitive '%s' not found in the stored base", name)
-		return nil
+func (s *SavedConfig) SetWantedState(wantedState *npstate.NPStates) {
+	s.wantedState = wantedState
+}
+
+func (s *SavedConfig) SetLogger(log *logger.Logger) {
+
+	if log != nil {
+		s.log = log
+	} else {
+		s.log = new(logger.Logger)
 	}
-	return rv
 }
 
-func (s *LnxRtPlugin) GetLogger() *logger.Logger {
-	return s.log
-}
+// -----------------------------------------------------------------------------
 
-func (s *LnxRtPlugin) GetHandle() *netlink.Handle {
-	return s.handle
-}
+func NewSavedConfig(log *logger.Logger) *SavedConfig {
+	rv := &SavedConfig{
+		Version:   "2",
+		Renderer:  "networkd",
+		Ethernets: make(SCEthernets),
+		// Bonds:     make(SCBonds),
+		Vlans:   make(SCVlans),
+		Bridges: make(SCBridges),
+	}
+	rv.SetLogger(log)
 
-func NewLnxRtPlugin() RtPlugin {
-	rv := new(LnxRtPlugin)
 	return rv
 }

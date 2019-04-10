@@ -125,8 +125,9 @@ func (s *DiffTopologyStatees) String() string {
 
 //------------------------------------------------------------------------------
 
+type NPStates map[string]*NPState
 type TopologyState struct {
-	NP              map[string]*NPState // Should be renamed to NP
+	NP              NPStates
 	Order           []string
 	DefaultProvider string
 }
