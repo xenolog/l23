@@ -84,32 +84,6 @@ func (s *SavedConfig) addBrIfRequired(name string) {
 	}
 }
 
-func (s *SavedConfig) fillBridge(brName string) error {
-	var ports []string
-
-	if err := s.CheckWS(); err != nil {
-		return err
-	}
-
-	s.addBrIfRequired(brName)
-	if _, ok := s.Bridges[brName]; !ok {
-		s.Bridges[brName] = &SCBridge{}
-	}
-
-	for _, np := range *s.wantedState {
-		if np.L2.Bridge == brName {
-			ports = append(ports, np.Name)
-		}
-	}
-
-	if len(ports) > 0 {
-		sort.Strings(ports)
-		s.Bridges[brName].Interfaces = append(s.Bridges[brName].Interfaces, ports...)
-	}
-
-	return nil
-}
-
 func (s *SavedConfig) CheckWS() (rv error) {
 	if s.wantedState == nil {
 		errMsg := "Wanted states of Network primitives are not set."
@@ -140,8 +114,20 @@ func (s *SavedConfig) Generate() error {
 				s.Ethernets[np.Name].AddAddresses(np.L3.IPv4)
 			}
 		case "bridge":
+			var ports []string
 			s.addBrIfRequired(np.Name)
-			s.fillBridge(np.Name)
+
+			for _, member := range *s.wantedState {
+				if member.L2.Bridge == np.Name {
+					ports = append(ports, member.Name)
+				}
+			}
+
+			if len(ports) > 0 {
+				sort.Strings(ports)
+				s.Bridges[np.Name].Interfaces = append(s.Bridges[np.Name].Interfaces, ports...)
+			}
+
 			s.Bridges[np.Name].AddAddresses(np.L3.IPv4)
 		default:
 			errMsg := fmt.Sprintf("Unsupported 'action' for '%s'.", np.Name)

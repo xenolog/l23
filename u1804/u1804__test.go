@@ -1,7 +1,6 @@
 package u1804
 
 import (
-	"fmt"
 	"testing"
 
 	npstate "github.com/xenolog/l23/npstate"
@@ -167,7 +166,7 @@ func Test__Just_Bridge(t *testing.T) {
 		t.Logf("Can't unmarshall the wanted YAML: %s\n%s", err, wantedYaml)
 		t.FailNow()
 	}
-	fmt.Printf("%v", actualSC)
+	// fmt.Printf("%v", actualSC)
 	td.CmpDeeply(t, actualSC, wantedSC, "ETH and Bridge properties are not equal")
 }
 
