@@ -2,6 +2,8 @@ package u1804
 
 import (
 	"errors"
+	"fmt"
+	"sort"
 
 	"gopkg.in/yaml.v2"
 
@@ -70,20 +72,63 @@ type SavedConfig struct {
 
 // -----------------------------------------------------------------------------
 
-func (s *SavedConfig) Generate() error {
+func (s *SavedConfig) addEthIfRequired(name string) {
+	if _, ok := s.Ethernets[name]; !ok {
+		s.Ethernets[name] = &SCEthernet{}
+	}
+}
+
+func (s *SavedConfig) addBrIfRequired(name string) {
+	if _, ok := s.Bridges[name]; !ok {
+		s.Bridges[name] = &SCBridge{}
+	}
+}
+
+func (s *SavedConfig) fillBridge(brName string) error {
+	var ports []string
+
+	if err := s.CheckWS(); err != nil {
+		return err
+	}
+
+	s.addBrIfRequired(brName)
+	if _, ok := s.Bridges[brName]; !ok {
+		s.Bridges[brName] = &SCBridge{}
+	}
+
+	for _, np := range *s.wantedState {
+		if np.L2.Bridge == brName {
+			ports = append(ports, np.Name)
+		}
+	}
+
+	if len(ports) > 0 {
+		sort.Strings(ports)
+		s.Bridges[brName].Interfaces = append(s.Bridges[brName].Interfaces, ports...)
+	}
+
+	return nil
+}
+
+func (s *SavedConfig) CheckWS() (rv error) {
 	if s.wantedState == nil {
 		errMsg := "Wanted states of Network primitives are not set."
 		s.log.Error("%s: %s", MsgPrefix, errMsg)
-		return errors.New(errMsg)
+		rv = errors.New(errMsg)
+	}
+	return rv
+}
+
+func (s *SavedConfig) Generate() error {
+	if err := s.CheckWS(); err != nil {
+		return err
 	}
 	for _, np := range *s.wantedState {
 		switch np.Action {
 		case "port":
 			if np.L2.Vlan_id != 0 {
 				// vlan
-				if _, ok := s.Ethernets[np.L2.Parent]; !ok {
-					s.Ethernets[np.L2.Parent] = &SCEthernet{}
-				}
+				s.addEthIfRequired(np.L2.Parent)
 				s.Vlans[np.Name] = &SCVlan{
 					Id:   np.L2.Vlan_id,
 					Link: np.L2.Parent,
@@ -91,13 +136,17 @@ func (s *SavedConfig) Generate() error {
 				s.Vlans[np.Name].AddAddresses(np.L3.IPv4)
 			} else {
 				// just ethernet
-				s.Ethernets[np.Name] = &SCEthernet{}
+				s.addEthIfRequired(np.Name)
 				s.Ethernets[np.Name].AddAddresses(np.L3.IPv4)
 			}
-			// default:
-			// 	errMsg := fmt.Sprintf("Unsupported 'action' for '%s'.", np.Name)
-			// 	s.log.Error("%s: %s", MsgPrefix, errMsg)
-			// 	return errors.New(errMsg)
+		case "bridge":
+			s.addBrIfRequired(np.Name)
+			s.fillBridge(np.Name)
+			s.Bridges[np.Name].AddAddresses(np.L3.IPv4)
+		default:
+			errMsg := fmt.Sprintf("Unsupported 'action' for '%s'.", np.Name)
+			s.log.Error("%s: %s", MsgPrefix, errMsg)
+			return errors.New(errMsg)
 		}
 
 	}
