@@ -116,19 +116,22 @@ func (s *SavedConfig) Generate() error {
 		case "bridge":
 			var ports []string
 			s.addBrIfRequired(np.Name)
-
 			for _, member := range *s.wantedState {
 				if member.L2.Bridge == np.Name {
 					ports = append(ports, member.Name)
 				}
 			}
-
 			if len(ports) > 0 {
 				sort.Strings(ports)
 				s.Bridges[np.Name].Interfaces = append(s.Bridges[np.Name].Interfaces, ports...)
 			}
-
 			s.Bridges[np.Name].AddAddresses(np.L3.IPv4)
+		case "bond":
+			if _, ok := s.Bonds[np.Name]; !ok {
+				s.Bonds[np.Name] = &SCBond{}
+			}
+			s.Bonds[np.Name].Interfaces = np.L2.Slaves
+			s.Bonds[np.Name].AddAddresses(np.L3.IPv4)
 		default:
 			errMsg := fmt.Sprintf("Unsupported 'action' for '%s'.", np.Name)
 			s.log.Error("%s: %s", MsgPrefix, errMsg)
@@ -164,9 +167,9 @@ func NewSavedConfig(log *logger.Logger) *SavedConfig {
 		Version:   "2",
 		Renderer:  "networkd",
 		Ethernets: make(SCEthernets),
-		// Bonds:     make(SCBonds),
-		Vlans:   make(SCVlans),
-		Bridges: make(SCBridges),
+		Bonds:     make(SCBonds),
+		Vlans:     make(SCVlans),
+		Bridges:   make(SCBridges),
 	}
 	rv.SetLogger(log)
 

@@ -1,6 +1,7 @@
 package u1804
 
 import (
+	"fmt"
 	"testing"
 
 	npstate "github.com/xenolog/l23/npstate"
@@ -249,6 +250,134 @@ func Test__Bridge_with_vlans(t *testing.T) {
 	}
 	// fmt.Printf("%v", actualSC)
 	td.CmpDeeply(t, actualSC, wantedSC, "ETH and Bridge properties are not equal")
+}
+
+func Test__Just_Bond(t *testing.T) {
+	wantedState := make(npstate.NPStates)
+	bondName := "bond1"
+	wantedState[bondName] = &npstate.NPState{
+		Name:   bondName,
+		Action: "bond",
+		Online: true,
+		L2: npstate.L2State{
+			Slaves: []string{"eth2", "eth3"},
+		},
+		L3: npstate.L3State{
+			IPv4: []string{"10.10.10.131/25"},
+		},
+	}
+	for _, linkName := range []string{"eth2", "eth3"} {
+		wantedState[linkName] = &npstate.NPState{
+			Name:   linkName,
+			Action: "port",
+			Online: true,
+		}
+	}
+
+	savedConfig := NewSavedConfig(nil)
+	savedConfig.SetWantedState(&wantedState)
+	savedConfig.Generate()
+	actualYaml := savedConfig.String()
+	actualSC := new(SavedConfig)
+	if err := yaml.Unmarshal([]byte(actualYaml), actualSC); err != nil {
+		t.Logf("Can't unmarshall the actual YAML: %s\n%s", err, actualYaml)
+		t.FailNow()
+	}
+	wantedYaml := `
+    version: 2
+    renderer: networkd
+    ethernets:
+      eth2:
+        dhcp4: false
+        dhcp6: false
+      eth3:
+        dhcp4: false
+        dhcp6: false
+    bonds:
+      bond1:
+        interfaces: ["eth2","eth3"]
+        addresses:
+          - 10.10.10.131/25
+        dhcp4: false
+        dhcp6: false
+`
+	wantedSC := new(SavedConfig)
+	if err := yaml.Unmarshal([]byte(wantedYaml), wantedSC); err != nil {
+		t.Logf("Can't unmarshall the wanted YAML: %s\n%s", err, wantedYaml)
+		t.FailNow()
+	}
+	//fmt.Printf("%v", actualSC)
+	td.CmpDeeply(t, actualSC, wantedSC, "ETH and Bond properties are not equal")
+}
+
+func Test__Bond_into_bridge(t *testing.T) {
+	wantedState := make(npstate.NPStates)
+	brName := "br1"
+	wantedState[brName] = &npstate.NPState{
+		Name:   brName,
+		Action: "bridge",
+		Online: true,
+		L3: npstate.L3State{
+			IPv4: []string{"10.10.10.131/25"},
+		},
+	}
+	bondName := "bond1"
+	wantedState[bondName] = &npstate.NPState{
+		Name:   bondName,
+		Action: "bond",
+		Online: true,
+		L2: npstate.L2State{
+			Bridge: "br1",
+			Slaves: []string{"eth2", "eth3"},
+		},
+	}
+	for _, linkName := range []string{"eth2", "eth3"} {
+		wantedState[linkName] = &npstate.NPState{
+			Name:   linkName,
+			Action: "port",
+			Online: true,
+		}
+	}
+
+	savedConfig := NewSavedConfig(nil)
+	savedConfig.SetWantedState(&wantedState)
+	savedConfig.Generate()
+	actualYaml := savedConfig.String()
+	actualSC := new(SavedConfig)
+	if err := yaml.Unmarshal([]byte(actualYaml), actualSC); err != nil {
+		t.Logf("Can't unmarshall the actual YAML: %s\n%s", err, actualYaml)
+		t.FailNow()
+	}
+	wantedYaml := `
+    version: 2
+    renderer: networkd
+    ethernets:
+      eth2:
+        dhcp4: false
+        dhcp6: false
+      eth3:
+        dhcp4: false
+        dhcp6: false
+    bridges:
+      br1:
+        interfaces: ["bond1"]
+        addresses:
+          - 10.10.10.131/25
+        dhcp4: false
+        dhcp6: false
+    bonds:
+      bond1:
+        interfaces: ["eth2","eth3"]
+        dhcp4: false
+        dhcp6: false
+`
+	wantedSC := new(SavedConfig)
+	if err := yaml.Unmarshal([]byte(wantedYaml), wantedSC); err != nil {
+		t.Logf("Can't unmarshall the wanted YAML: %s\n%s", err, wantedYaml)
+		t.FailNow()
+	}
+	fmt.Printf("%v", actualSC)
+	td.CmpDeeply(t, actualSC, wantedSC, "ETH and Bond properties are not equal")
 }
 
 // -----------------------------------------------------------------------------
