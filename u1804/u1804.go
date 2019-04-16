@@ -64,7 +64,7 @@ type SavedConfig struct {
 	wantedState *npstate.NPStates
 	Version     string
 	Renderer    string
-	Ethernets   SCEthernets `yaml:",omitempty"` //, inline, flow
+	Ethernets   SCEthernets `yaml:",omitempty"`
 	Bonds       SCBonds     `yaml:",omitempty"`
 	Vlans       SCVlans     `yaml:",omitempty"`
 	Bridges     SCBridges   `yaml:",omitempty"`
@@ -143,7 +143,10 @@ func (s *SavedConfig) Generate() error {
 }
 
 func (s *SavedConfig) String() string {
-	rv, _ := yaml.Marshal(s)
+	type xxx struct {
+		Network *SavedConfig
+	}
+	rv, _ := yaml.Marshal(&xxx{Network: s})
 	return string(rv[:])
 }
 

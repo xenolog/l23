@@ -1,12 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	cli "github.com/urfave/cli"
 	logger "github.com/xenolog/go-tiny-logger"
 	"github.com/xenolog/l23/lnx"
 	"github.com/xenolog/l23/plugin"
+	"github.com/xenolog/l23/u1804"
 	. "github.com/xenolog/l23/utils"
 )
 
@@ -37,33 +39,31 @@ func init() {
 			Name:        "debug",
 			EnvVar:      "L23_DEBUG",
 			Usage:       "Enable debug mode. Show more output",
-			Destination: &Cfg.Debug,
+			Destination: &Cfg.Debug, // todo: remove Cfg usage
 		},
 		cli.BoolFlag{
 			Name:        "dry-run",
 			EnvVar:      "L23_DRY-RUN",
 			Usage:       "Dry-run mode. Do non changes in the real network configuration",
-			Destination: &Cfg.DryRun,
+			Destination: &Cfg.DryRun, // todo: remove Cfg usage
 		},
 		cli.StringFlag{
 			Name:        "ns",
 			EnvVar:      "L23_NS",
 			Value:       "/etc/network_scheme.yaml",
 			Usage:       "Specify path to network scheme file",
-			Destination: &Cfg.NsPath,
+			Destination: &Cfg.NsPath, // todo: remove Cfg usage
 		},
 		cli.StringFlag{
-			Name:        "store-config",
-			EnvVar:      "L23_STORE_CONFIG",
-			Value:       "/etc/netplan/999-l23network.yaml",
-			Usage:       "Specify path for generate network config file",
-			Destination: &Cfg.GeneratedConfig,
+			Name:   "store-config",
+			EnvVar: "L23_STORE_CONFIG",
+			Value:  "/etc/netplan/999-l23network.yaml",
+			Usage:  "Specify path for generate network config file. (use 'stdout' if need)",
 		},
 		cli.BoolFlag{
-			Name:        "generate",
-			EnvVar:      "L23_GENERATE",
-			Usage:       "Generate network config",
-			Destination: &Cfg.GenerateConfig,
+			Name:   "generate",
+			EnvVar: "L23_GENERATE",
+			Usage:  "Generate network config",
 		},
 	}
 	App.Commands = []cli.Command{{
@@ -208,7 +208,10 @@ func RunNetConfig(c *cli.Context) (err error) {
 
 func StoreNetConfig(c *cli.Context) (err error) {
 	// Load and Process Network Scheme
-	var rr *os.File
+	var (
+		rr *os.File
+		ww *os.File
+	)
 	Log.Debug("Run StoreNetConfig with network scheme: '%s'", c.GlobalString("ns"))
 	ns := new(NetworkScheme)
 	if rr, err = os.Open(c.GlobalString("ns")); err != nil {
@@ -216,6 +219,7 @@ func StoreNetConfig(c *cli.Context) (err error) {
 		Log.Error("%v", err)
 		return err
 	}
+	// defer rr.Close()
 	if err = ns.Load(rr); err != nil {
 		Log.Error("Can't process network scheme from '%s'", c.GlobalString("ns"))
 		Log.Error("%v", err)
@@ -227,12 +231,29 @@ func StoreNetConfig(c *cli.Context) (err error) {
 	wantedNetState := ns.TopologyState()
 	Log.Debug("NetworkScheme processed")
 
-	// ---
-	savedConfig := NewSavedConfig(Log)
+	// Generate Netplan YAML and store it
+	savedConfig := u1804.NewSavedConfig(Log)
 	savedConfig.SetWantedState(&wantedNetState.NP)
-	savedConfig.Generate()
+	if err = savedConfig.Generate(); err != nil {
+		Log.Error("Error while Netplan YAML generation: '%s'", err)
+		return err
+	}
 	actualYaml := savedConfig.String()
-	Log.Debug("GeneratedNetworkConfig is: %s", actualYaml)
+
+	configFileName := c.GlobalString("store-config")
+	if configFileName == "stdout" || configFileName == "tty" {
+		fmt.Printf("---\n%s", actualYaml)
+	} else {
+		ww, err = os.Create(configFileName)
+		if err != nil {
+			Log.Error("Can't create file '%s'", configFileName)
+			Log.Error("%v", err)
+			return err
+		}
+		defer ww.Close()
+		ww.WriteString(actualYaml)
+	}
+	return err
 }
 
 // -----------------------------------------------------------------------------

@@ -3,12 +3,9 @@ package u1804
 import (
 	"testing"
 
-	npstate "github.com/xenolog/l23/npstate"
-	"gopkg.in/yaml.v2"
-
-	// logger "github.com/xenolog/go-tiny-logger"
-	// . "github.com/xenolog/l23/utils"
 	td "github.com/maxatome/go-testdeep"
+	"github.com/xenolog/l23/npstate"
+	"gopkg.in/yaml.v2"
 )
 
 func Test__Just_Ethernet(t *testing.T) {
@@ -28,14 +25,15 @@ func Test__Just_Ethernet(t *testing.T) {
 	savedConfig.Generate()
 	actualYaml := savedConfig.String()
 	wantedYaml := `
-    version: "2"
-    renderer: networkd
-    ethernets:
-      eth1:
-        addresses:
-          - 10.10.10.131/25
-        dhcp4: false
-        dhcp6: false
+    network:
+      version: "2"
+      renderer: networkd
+      ethernets:
+        eth1:
+          addresses:
+            - 10.10.10.131/25
+          dhcp4: false
+          dhcp6: false
 `
 	actualSC := new(SavedConfig)
 	if err := yaml.Unmarshal([]byte(actualYaml), actualSC); err != nil {
@@ -81,6 +79,7 @@ func Test__Just_Vlan(t *testing.T) {
 		t.FailNow()
 	}
 	wantedYaml := `
+  network:
     version: 2
     renderer: networkd
     ethernets:
@@ -139,6 +138,7 @@ func Test__Just_Bridge(t *testing.T) {
 		t.FailNow()
 	}
 	wantedYaml := `
+  network:
     version: 2
     renderer: networkd
     ethernets:
@@ -214,6 +214,7 @@ func Test__Bridge_with_vlans(t *testing.T) {
 		t.FailNow()
 	}
 	wantedYaml := `
+  network:
     version: 2
     renderer: networkd
     ethernets:
@@ -287,6 +288,7 @@ func Test__Just_Bond(t *testing.T) {
 		t.FailNow()
 	}
 	wantedYaml := `
+  network:
     version: 2
     renderer: networkd
     ethernets:
@@ -352,6 +354,7 @@ func Test__Bond_into_bridge(t *testing.T) {
 		t.FailNow()
 	}
 	wantedYaml := `
+  network:
     version: 2
     renderer: networkd
     ethernets:
@@ -440,6 +443,7 @@ func Test__Both_type_of_vlans_into_bridge(t *testing.T) {
 		t.FailNow()
 	}
 	wantedYaml := `
+  network:
     version: 2
     renderer: networkd
     ethernets:
