@@ -1,9 +1,11 @@
 package utils
 
 type AppConfig struct {
-	Debug  bool
-	DryRun bool
-	NsPath string
+	Debug           bool
+	DryRun          bool
+	NsPath          string
+	GeneratedConfig string
+	GenerateConfig  bool
 }
 
 // IndexString -- Search first occurance of str into string slice

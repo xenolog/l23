@@ -52,6 +52,19 @@ func init() {
 			Usage:       "Specify path to network scheme file",
 			Destination: &Cfg.NsPath,
 		},
+		cli.StringFlag{
+			Name:        "store-config",
+			EnvVar:      "L23_STORE_CONFIG",
+			Value:       "/etc/netplan/999-l23network.yaml",
+			Usage:       "Specify path for generate network config file",
+			Destination: &Cfg.GeneratedConfig,
+		},
+		cli.BoolFlag{
+			Name:        "generate",
+			EnvVar:      "L23_GENERATE",
+			Usage:       "Generate network config",
+			Destination: &Cfg.GenerateConfig,
+		},
 	}
 	App.Commands = []cli.Command{{
 		Name:    "utility",
@@ -71,6 +84,16 @@ func init() {
 		Aliases: []string{"nc", "run"},
 		Usage:   "Re-configure network, correspond to network scheme",
 		Action:  RunNetConfig,
+		Before: func(c *cli.Context) error {
+			Log.Debug("Check network scheme exists.")
+			_, err := os.Stat(Cfg.NsPath)
+			return err
+		},
+	}, {
+		Name:    "store",
+		Aliases: []string{"st"},
+		Usage:   "Re-write network config, correspond to network scheme",
+		Action:  StoreNetConfig,
 		Before: func(c *cli.Context) error {
 			Log.Debug("Check network scheme exists.")
 			_, err := os.Stat(Cfg.NsPath)
@@ -175,7 +198,41 @@ func RunNetConfig(c *cli.Context) (err error) {
 	//     t.Logf("Problen while modifying resources: %v", npModifyed)
 	//     t.Fail()
 	// }
-	return nil
+
+	if c.GlobalBool("gnerate") {
+		err = StoreNetConfig(c)
+	}
+
+	return err
+}
+
+func StoreNetConfig(c *cli.Context) (err error) {
+	// Load and Process Network Scheme
+	var rr *os.File
+	Log.Debug("Run StoreNetConfig with network scheme: '%s'", c.GlobalString("ns"))
+	ns := new(NetworkScheme)
+	if rr, err = os.Open(c.GlobalString("ns")); err != nil {
+		Log.Error("Can't open file '%s'", c.GlobalString("ns"))
+		Log.Error("%v", err)
+		return err
+	}
+	if err = ns.Load(rr); err != nil {
+		Log.Error("Can't process network scheme from '%s'", c.GlobalString("ns"))
+		Log.Error("%v", err)
+		return err
+	}
+	Log.Debug("NetworkScheme loaded")
+
+	// generate wanted network topology
+	wantedNetState := ns.TopologyState()
+	Log.Debug("NetworkScheme processed")
+
+	// ---
+	savedConfig := NewSavedConfig(Log)
+	savedConfig.SetWantedState(&wantedNetState.NP)
+	savedConfig.Generate()
+	actualYaml := savedConfig.String()
+	Log.Debug("GeneratedNetworkConfig is: %s", actualYaml)
 }
 
 // -----------------------------------------------------------------------------
