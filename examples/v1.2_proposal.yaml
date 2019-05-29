@@ -14,7 +14,7 @@ transformations:
   - name: br2
     action: bridge
     vendor_specific:
-      - stp: false
+      stp: false
   - name: eth0.101
     action: port
     parent: eth0

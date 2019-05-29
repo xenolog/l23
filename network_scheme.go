@@ -14,22 +14,17 @@ import (
 )
 
 type NsPrimitive struct {
-	Action       string   `yaml:"action"`
-	Name         string   `yaml:"name"`
-	Mtu          int      `yaml:"mtu,omitempty"`
-	Bridge       string   `yaml:"bridge,omitempty"`
-	Parent       string   `yaml:"parent,omitempty"`
-	Slaves       []string `yaml:"slaves,omitempty"`
-	Vlan_id      int      `yaml:"vlan_id,omitempty"`
-	Stp          bool     `yaml:"stp,omitempty"`
-	Bpdu_forward bool     `yaml:"bpdu_forward,omitempty"`
-	Type         string   `yaml:"Type,omitempty"`
-	Provider     string   `yaml:"provider"`
-	// Vendor_specific string   `yaml:"vendor_specific,omitempty"`
-	// Ethtool
-	// External_ids
-	// Bond_properties
-	// Interface_properties
+	Action         string                 `yaml:"action"`
+	Name           string                 `yaml:"name"`
+	Mtu            int                    `yaml:"mtu,omitempty"`
+	Bridge         string                 `yaml:"bridge,omitempty"`
+	Parent         string                 `yaml:"parent,omitempty"`
+	Slaves         []string               `yaml:"slaves,omitempty"`
+	Vlan_id        int                    `yaml:"vlan_id,omitempty"`
+	Type           string                 `yaml:"Type,omitempty"`
+	Provider       string                 `yaml:"provider"`
+	VendorSpecific map[string]interface{} `yaml:"vendor_specific,omitempty"`
+	vendorSpecific map[string]interface{}
 }
 
 type NsEp struct {
@@ -50,6 +45,15 @@ type NetworkScheme struct {
 	Provider        string            `yaml:"provider"`
 }
 
+type CustomProperty struct {
+	Type         string
+	DefaultValue string
+	// Setter
+	// Getter
+}
+type CustomProperties map[string]CustomProperty
+type PluginCustomProperties map[string]CustomProperties
+
 // func (s *NetworkScheme) setLogger(log *logger.Logger) {
 // 	if log != nil {
 // 		s.log = log
@@ -57,6 +61,23 @@ type NetworkScheme struct {
 // 		s.log = new(logger.Logger)
 // 	}
 // }
+
+// -----------------------------------------------------------------------------
+
+func (s *NsPrimitive) ProcessVS(custProperties CustomProperties) (err error) {
+	s.vendorSpecific = make(map[string]interface{})
+	return nil
+}
+
+func (s *NsPrimitive) GetVS(name string) interface{} {
+	rv, ok := s.vendorSpecific[name]
+	if !ok {
+		return nil
+	}
+	return rv
+}
+
+// -----------------------------------------------------------------------------
 
 func (s *NetworkScheme) Load(r io.Reader) (err error) {
 	var (
@@ -72,6 +93,47 @@ func (s *NetworkScheme) Load(r io.Reader) (err error) {
 		log.Printf("NetworkScheme YAML parsing error: %v", err)
 		return
 	}
+
+	// check and fill default Provider
+	if s.Provider == "" {
+		s.Provider = "lnx"
+	}
+
+	return
+}
+
+func (s *NetworkScheme) ProcessVS(custProperties PluginCustomProperties) (err error) {
+	var errors []error
+	// iterate Interfaces
+	for ifname, iface := range s.Interfaces {
+		if iface.Provider == "" {
+			iface.Provider = s.Provider
+		}
+		if iface.Action == "" {
+			// Interface allowed to absent Action. This property obligatory only for transformations
+			iface.Action = "interface"
+		}
+		if ifaceVSscheme, ok := custProperties[iface.Action]; ok {
+			if e := iface.ProcessVS(ifaceVSscheme); e != nil {
+				errors = append(errors, e)
+				log.Printf("NetworkScheme VS processing error for interface '%s': %v", ifname, e)
+			}
+		}
+	}
+
+	// iterate Transformations
+	for _, tr := range s.Transformations {
+		if tr.Provider == "" {
+			tr.Provider = s.Provider
+		}
+		if trVSscheme, ok := custProperties[tr.Action]; ok {
+			if e := tr.ProcessVS(trVSscheme); e != nil {
+				errors = append(errors, e)
+				log.Printf("NetworkScheme VS processing error for transformation '%s': %v", tr.Name, e)
+			}
+		}
+	}
+
 	return
 }
 
@@ -107,8 +169,6 @@ func (s *NetworkScheme) TopologyState() *npstate.TopologyState {
 		rv.NP[tr.Name].L2.Parent = tr.Parent
 		rv.NP[tr.Name].L2.Slaves = tr.Slaves
 		rv.NP[tr.Name].L2.Vlan_id = tr.Vlan_id
-		rv.NP[tr.Name].L2.Stp = tr.Stp                   // todo(sv): move to vendor_specific
-		rv.NP[tr.Name].L2.Bpdu_forward = tr.Bpdu_forward // todo(sv): move to vendor_specific
 		if tr.Provider != "" {
 			rv.NP[tr.Name].Provider = tr.Provider
 		} else if rv.NP[tr.Name].Provider == "" {

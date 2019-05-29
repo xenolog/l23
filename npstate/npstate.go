@@ -1,7 +1,6 @@
 package npstate
 
 import (
-	"fmt"
 	"reflect"
 	"sort"
 
@@ -13,14 +12,11 @@ import (
 var Log *logger.Logger
 
 type L2State struct {
-	Mtu          int
-	Bridge       string
-	Parent       string
-	Slaves       []string
-	Vlan_id      int
-	Stp          bool
-	Bpdu_forward bool
-	// Type         string
+	Mtu     int
+	Bridge  string
+	Parent  string
+	Slaves  []string
+	Vlan_id int
 }
 
 type L3State struct {
@@ -98,7 +94,7 @@ func (s *NPState) CompareL23(n *NPState) bool {
 	l2 := s.CompareL2(n)
 	l3 := s.CompareL3(n)
 	oo := (s.Online == n.Online)
-	fmt.Printf("*** '%s-%s': %v %v %v\n", s.Name, n.Name, l2, l3, oo)
+	//fmt.Printf("*** '%s-%s': %v %v %v\n", s.Name, n.Name, l2, l3, oo)
 	return l2 && l3 && oo
 }
 

@@ -11,14 +11,15 @@ import (
 
 func NetworkScheme_1() string {
 	return `
-version: 1.1
-provider: lnx
+version: 1.2
+provider: qwe
 xxx: yyy
 interfaces:
     eth0:
       mtu: 2048
     eth1:
       mtu: 999
+      provider: xxx
     eth2: {}
 endpoints:
     eth0:
@@ -50,7 +51,7 @@ func TopologyState_1() *npstate.TopologyState {
 		L3: npstate.L3State{
 			IPv4: []string{"10.1.3.11/24", "10.20.30.40/24"},
 		},
-		Provider: "lnx",
+		Provider: "qwe",
 	}
 
 	linkName = "eth1"
@@ -64,7 +65,7 @@ func TopologyState_1() *npstate.TopologyState {
 		L3: npstate.L3State{
 			IPv4: nil,
 		},
-		Provider: "lnx",
+		Provider: "xxx",
 	}
 
 	linkName = "eth2"
@@ -72,7 +73,7 @@ func TopologyState_1() *npstate.TopologyState {
 		Name:     linkName,
 		Action:   "port",
 		Online:   true,
-		Provider: "lnx",
+		Provider: "qwe",
 	}
 	return rv
 }
@@ -80,9 +81,9 @@ func TopologyState_1() *npstate.TopologyState {
 // -----------------------------------------------------------------------------
 
 func NetworkScheme_2() string {
+	// global Provider value should be empty !!!
 	return `
 version: 1.1
-provider: lnx
 xxx: yyy
 interfaces:
     eth0: {}
@@ -178,16 +179,24 @@ func TestNS__Values(t *testing.T) {
 	if err := ns.Load(ns_yaml); err != nil {
 		t.FailNow()
 	}
+	if ns.Provider != "qwe" {
+		t.Logf("Provider mismatch. Actual:'%s'", ns.Provider)
+		t.Fail()
+	}
 	if ns.Interfaces["eth0"].Mtu != 2048 {
+		t.Logf("eth0 MTU mismatch")
 		t.Fail()
 	}
 	if ns.Endpoints["eth0"].Gateway != "10.1.3.1" {
+		t.Logf("eth0 gateway mismatch")
 		t.Fail()
 	}
 	if ns.Endpoints["eth0"].IP[1] != "10.20.30.40/24" {
+		t.Logf("eth0 2nd IPaddr mismatch")
 		t.Fail()
 	}
 	if ns.Endpoints["eth1"].IP[0] != "none" {
+		t.Logf("eth1 IPaddr is not none")
 		t.Fail()
 	}
 }
@@ -399,8 +408,6 @@ transformations:
       - x1
       - x2
     vlan_id: 101
-    stp: true
-    bpdu_forward: true
 `)
 	if err := ns.Load(ns_data); err != nil {
 		t.FailNow()
@@ -432,18 +439,82 @@ transformations:
 		t.Logf("Field 'Slaves' not present or invalid")
 		t.Fail()
 	}
-	if !nps.NP["xxx"].L2.Bpdu_forward {
-		t.Logf("Field 'Bpdu_forward' not present or invalid")
-		t.Fail()
-	}
-	if !nps.NP["xxx"].L2.Stp {
-		t.Logf("Field 'Stp' not present or invalid")
-		t.Fail()
-	}
 	if t.Failed() {
 		txt, _ := yaml.Marshal(nps.NP["xxx"])
 		t.Logf(string(txt))
 	}
+}
+
+// -----------------------------------------------------------------------------
+func FlxNetworkScheme_1() string {
+	return `
+version: 1.2
+provider: lnx
+config-provider: ubuntu16
+processing: imperative
+interfaces:
+  eth0: {}
+transformations:
+- name: br1
+  mtu:  1496
+  action: bridge
+  vendor_specific:
+    stp: false
+- name: br2
+  action: bridge
+  vendor_specific:
+    aaa: bbb
+    ccc: 123
+    ddd: eee
+`
+}
+
+func GetPluginCustomProperties() PluginCustomProperties {
+	rv := make(PluginCustomProperties)
+	rv["interface"] = make(CustomProperties)
+	rv["interface"]["provider"] = CustomProperty{
+		// 'interface' -- is a reserved name for RAW interfaces
+		Type:         "string",
+		DefaultValue: "lnx",
+	}
+	rv["bridge"] = make(CustomProperties)
+	rv["bridge"]["stp"] = CustomProperty{
+		Type:         "bool",
+		DefaultValue: "false",
+	}
+	rv["bridge"]["aaa"] = CustomProperty{
+		Type:         "string",
+		DefaultValue: "aaa",
+	}
+	rv["bridge"]["ccc"] = CustomProperty{
+		Type:         "int",
+		DefaultValue: "1",
+	}
+	return rv
+}
+
+func Test_FlxNS__CustomValues(t *testing.T) {
+	ns := new(NetworkScheme)
+	ns_yaml := strings.NewReader(FlxNetworkScheme_1())
+	if err := ns.Load(ns_yaml); err != nil {
+		t.FailNow()
+	}
+	if err := ns.ProcessVS(GetPluginCustomProperties()); err != nil {
+		t.FailNow()
+	}
+
+	// if ns.Interfaces["eth0"].Mtu != 2048 {
+	// 	t.Fail()
+	// }
+	// if ns.Endpoints["eth0"].Gateway != "10.1.3.1" {
+	// 	t.Fail()
+	// }
+	// if ns.Endpoints["eth0"].IP[1] != "10.20.30.40/24" {
+	// 	t.Fail()
+	// }
+	// if ns.Endpoints["eth1"].IP[0] != "none" {
+	// 	t.Fail()
+	// }
 }
 
 // -----------------------------------------------------------------------------
