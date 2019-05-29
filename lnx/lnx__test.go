@@ -19,7 +19,7 @@ func TestLNX__OperatorList(t *testing.T) {
 		keys = append(keys, key.String())
 	}
 	sort.Strings(keys)
-	wantedKeys := []string{"bridge", "port"}
+	wantedKeys := []string{"bond", "bridge", "port"}
 
 	if !reflect.DeepEqual(keys, wantedKeys) {
 		t.Logf("Operator list from LnxRtPlugin broken, given %v, instead %v", keys, wantedKeys)
