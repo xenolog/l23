@@ -47,7 +47,7 @@ type NetworkScheme struct {
 
 type CustomProperty struct {
 	Type         string
-	DefaultValue string
+	DefaultValue string // may be inteface{} ???
 	// Setter
 	// Getter
 }
@@ -64,8 +64,13 @@ type PluginCustomProperties map[string]CustomProperties
 
 // -----------------------------------------------------------------------------
 
+// this method should receive only fieldsst schema, relaed to corresponded
+// network primitive type.
 func (s *NsPrimitive) ProcessVS(custProperties CustomProperties) (err error) {
 	s.vendorSpecific = make(map[string]interface{})
+	for k, v := range s.VendorSpecific {
+		log.Printf("VS for '%s':  %s == %v", s.Name, k, v)
+	}
 	return nil
 }
 
