@@ -14,7 +14,7 @@ import (
 	. "github.com/xenolog/l23/plugin"
 	. "github.com/xenolog/l23/utils"
 	"golang.org/x/sys/unix"
-	yaml "gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v3"
 )
 
 const (

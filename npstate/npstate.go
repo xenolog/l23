@@ -7,7 +7,7 @@ import (
 
 	"github.com/vishvananda/netlink"
 	logger "github.com/xenolog/go-tiny-logger"
-	yaml "gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v3"
 )
 
 var Log *logger.Logger

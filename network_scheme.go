@@ -10,7 +10,7 @@ import (
 	npstate "github.com/xenolog/l23/npstate"
 
 	. "github.com/xenolog/l23/utils"
-	yaml "gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v3"
 )
 
 type NsPrimitive struct {

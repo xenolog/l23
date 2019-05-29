@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	npstate "github.com/xenolog/l23/npstate"
-	yaml "gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v3"
 )
 
 func NetworkScheme_1() string {

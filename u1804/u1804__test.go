@@ -5,7 +5,7 @@ import (
 
 	td "github.com/maxatome/go-testdeep"
 	"github.com/xenolog/l23/npstate"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 func Test__Just_Ethernet(t *testing.T) {
