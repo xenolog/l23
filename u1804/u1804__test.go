@@ -61,8 +61,8 @@ func Test__Just_Vlan(t *testing.T) {
 		Action: "port",
 		Online: true,
 		L2: npstate.L2State{
-			Parent:  "eth1",
-			Vlan_id: 101,
+			Parent: "eth1",
+			VlanID: 101,
 		},
 		L3: npstate.L3State{
 			IPv4: []string{"10.10.10.131/25"},
@@ -192,9 +192,9 @@ func Test__Bridge_with_vlans(t *testing.T) {
 		}
 		if linkName == "eth3.103" {
 			wantedState[linkName].L2 = npstate.L2State{
-				Bridge:  brName,
-				Parent:  "eth3",
-				Vlan_id: 103,
+				Bridge: brName,
+				Parent: "eth3",
+				VlanID: 103,
 			}
 		} else if linkName != "eth2" && linkName != "eth4" {
 			wantedState[linkName].L2 = npstate.L2State{
@@ -393,9 +393,9 @@ func Test__Both_type_of_vlans_into_bridge(t *testing.T) {
 		Action: "port",
 		Online: true,
 		L2: npstate.L2State{
-			Bridge:  "br1",
-			Parent:  "bond1",
-			Vlan_id: 101,
+			Bridge: "br1",
+			Parent: "bond1",
+			VlanID: 101,
 		},
 	}
 	brName := "br1"
@@ -428,9 +428,9 @@ func Test__Both_type_of_vlans_into_bridge(t *testing.T) {
 		Action: "port",
 		Online: true,
 		L2: npstate.L2State{
-			Bridge:  "br1",
-			Parent:  "eth1",
-			Vlan_id: 111,
+			Bridge: "br1",
+			Parent: "eth1",
+			VlanID: 111,
 		},
 	}
 	savedConfig := NewSavedConfig(nil)

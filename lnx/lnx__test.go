@@ -123,9 +123,9 @@ func RuntimeNpStatuses__1__wanted() *TopologyState {
 		Action: "port",
 		Online: true,
 		L2: L2State{
-			Bridge:  "br4",
-			Parent:  "eth1",
-			Vlan_id: 101,
+			Bridge: "br4",
+			Parent: "eth1",
+			VlanID: 101,
 		},
 	}
 

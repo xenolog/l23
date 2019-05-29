@@ -100,11 +100,11 @@ func (s *SavedConfig) Generate() error {
 	for _, np := range *s.wantedState {
 		switch np.Action {
 		case "port":
-			if np.L2.Vlan_id != 0 {
+			if np.L2.VlanID != 0 {
 				// vlan
 				//s.addEthIfRequired(np.L2.Parent)  // there are no such action here!!! Parent Interface always into NetworkState will be.
 				s.Vlans[np.Name] = &SCVlan{
-					Id:   np.L2.Vlan_id,
+					Id:   np.L2.VlanID,
 					Link: np.L2.Parent,
 				}
 				s.Vlans[np.Name].AddAddresses(np.L3.IPv4)

@@ -12,11 +12,11 @@ import (
 var Log *logger.Logger
 
 type L2State struct {
-	Mtu     int
-	Bridge  string
-	Parent  string
-	Slaves  []string
-	Vlan_id int
+	Mtu    int
+	Bridge string
+	Parent string
+	Slaves []string
+	VlanID int
 }
 
 type L3State struct {

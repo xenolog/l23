@@ -20,7 +20,7 @@ type NsPrimitive struct {
 	Bridge         string                 `yaml:"bridge,omitempty"`
 	Parent         string                 `yaml:"parent,omitempty"`
 	Slaves         []string               `yaml:"slaves,omitempty"`
-	Vlan_id        int                    `yaml:"vlan_id,omitempty"`
+	VlanID         int                    `yaml:"vlan_id,omitempty"`
 	Type           string                 `yaml:"Type,omitempty"`
 	Provider       string                 `yaml:"provider"`
 	VendorSpecific map[string]interface{} `yaml:"vendor_specific,omitempty"`
@@ -168,7 +168,7 @@ func (s *NetworkScheme) TopologyState() *npstate.TopologyState {
 		rv.NP[tr.Name].L2.Bridge = tr.Bridge
 		rv.NP[tr.Name].L2.Parent = tr.Parent
 		rv.NP[tr.Name].L2.Slaves = tr.Slaves
-		rv.NP[tr.Name].L2.Vlan_id = tr.Vlan_id
+		rv.NP[tr.Name].L2.VlanID = tr.VlanID
 		if tr.Provider != "" {
 			rv.NP[tr.Name].Provider = tr.Provider
 		} else if rv.NP[tr.Name].Provider == "" {

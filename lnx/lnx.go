@@ -193,7 +193,7 @@ func (s *L2Port) Create(dryrun bool) error {
 		return err
 	}
 
-	if s.wantedState.L2.Parent != "" && s.wantedState.L2.Vlan_id > 0 {
+	if s.wantedState.L2.Parent != "" && s.wantedState.L2.VlanID > 0 {
 		// vlan over parent
 		parentID := 0
 		if parent, err := netlink.LinkByName(s.wantedState.L2.Parent); err != nil {
@@ -203,7 +203,7 @@ func (s *L2Port) Create(dryrun bool) error {
 			parentID = parent.Attrs().Index
 		}
 		vlan := netlink.Vlan{
-			VlanId: s.wantedState.L2.Vlan_id,
+			VlanId: s.wantedState.L2.VlanID,
 		}
 		vlan.Name = s.Name()
 		vlan.ParentIndex = parentID
