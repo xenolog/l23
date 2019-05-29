@@ -1,12 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	cli "github.com/urfave/cli"
 	logger "github.com/xenolog/go-tiny-logger"
 	"github.com/xenolog/l23/lnx"
 	"github.com/xenolog/l23/plugin"
+	"github.com/xenolog/l23/u1804"
 	. "github.com/xenolog/l23/utils"
 )
 
@@ -37,20 +39,31 @@ func init() {
 			Name:        "debug",
 			EnvVar:      "L23_DEBUG",
 			Usage:       "Enable debug mode. Show more output",
-			Destination: &Cfg.Debug,
+			Destination: &Cfg.Debug, // todo: remove Cfg usage
 		},
 		cli.BoolFlag{
 			Name:        "dry-run",
 			EnvVar:      "L23_DRY-RUN",
 			Usage:       "Dry-run mode. Do non changes in the real network configuration",
-			Destination: &Cfg.DryRun,
+			Destination: &Cfg.DryRun, // todo: remove Cfg usage
 		},
 		cli.StringFlag{
 			Name:        "ns",
 			EnvVar:      "L23_NS",
 			Value:       "/etc/network_scheme.yaml",
 			Usage:       "Specify path to network scheme file",
-			Destination: &Cfg.NsPath,
+			Destination: &Cfg.NsPath, // todo: remove Cfg usage
+		},
+		cli.StringFlag{
+			Name:   "store-config",
+			EnvVar: "L23_STORE_CONFIG",
+			Value:  "/etc/netplan/999-l23network.yaml",
+			Usage:  "Specify path for generate network config file. (use 'stdout' if need)",
+		},
+		cli.BoolFlag{
+			Name:   "generate",
+			EnvVar: "L23_GENERATE",
+			Usage:  "Generate network config",
 		},
 	}
 	App.Commands = []cli.Command{{
@@ -71,6 +84,16 @@ func init() {
 		Aliases: []string{"nc", "run"},
 		Usage:   "Re-configure network, correspond to network scheme",
 		Action:  RunNetConfig,
+		Before: func(c *cli.Context) error {
+			Log.Debug("Check network scheme exists.")
+			_, err := os.Stat(Cfg.NsPath)
+			return err
+		},
+	}, {
+		Name:    "store",
+		Aliases: []string{"st"},
+		Usage:   "Re-write network config, correspond to network scheme",
+		Action:  StoreNetConfig,
 		Before: func(c *cli.Context) error {
 			Log.Debug("Check network scheme exists.")
 			_, err := os.Stat(Cfg.NsPath)
@@ -175,7 +198,62 @@ func RunNetConfig(c *cli.Context) (err error) {
 	//     t.Logf("Problen while modifying resources: %v", npModifyed)
 	//     t.Fail()
 	// }
-	return nil
+
+	if c.GlobalBool("gnerate") {
+		err = StoreNetConfig(c)
+	}
+
+	return err
+}
+
+func StoreNetConfig(c *cli.Context) (err error) {
+	// Load and Process Network Scheme
+	var (
+		rr *os.File
+		ww *os.File
+	)
+	Log.Debug("Run StoreNetConfig with network scheme: '%s'", c.GlobalString("ns"))
+	ns := new(NetworkScheme)
+	if rr, err = os.Open(c.GlobalString("ns")); err != nil {
+		Log.Error("Can't open file '%s'", c.GlobalString("ns"))
+		Log.Error("%v", err)
+		return err
+	}
+	// defer rr.Close()
+	if err = ns.Load(rr); err != nil {
+		Log.Error("Can't process network scheme from '%s'", c.GlobalString("ns"))
+		Log.Error("%v", err)
+		return err
+	}
+	Log.Debug("NetworkScheme loaded")
+
+	// generate wanted network topology
+	wantedNetState := ns.TopologyState()
+	Log.Debug("NetworkScheme processed")
+
+	// Generate Netplan YAML and store it
+	savedConfig := u1804.NewSavedConfig(Log)
+	savedConfig.SetWantedState(&wantedNetState.NP)
+	if err = savedConfig.Generate(); err != nil {
+		Log.Error("Error while Netplan YAML generation: '%s'", err)
+		return err
+	}
+	actualYaml := savedConfig.String()
+
+	configFileName := c.GlobalString("store-config")
+	if configFileName == "stdout" || configFileName == "tty" {
+		fmt.Printf("---\n%s", actualYaml)
+	} else {
+		ww, err = os.Create(configFileName)
+		if err != nil {
+			Log.Error("Can't create file '%s'", configFileName)
+			Log.Error("%v", err)
+			return err
+		}
+		defer ww.Close()
+		ww.WriteString(actualYaml)
+	}
+	return err
 }
 
 // -----------------------------------------------------------------------------

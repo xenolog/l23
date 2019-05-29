@@ -22,7 +22,7 @@ vagrant_cidr = $prefix + ".0.0/24"
 ENV["VAGRANT_DEFAULT_PROVIDER"] = "libvirt"
 
 # Boxes with libvirt provider support:
-box = ENV["VAGRANT_L23_BOX"] || "generic/ubuntu1604"
+box = ENV["VAGRANT_L23_BOX"] || "generic/ubuntu1804"
 
 
 vm_memory = (ENV["VAGRANT_L23_NODE_MEMORY"] || "1024").to_i
